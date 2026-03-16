@@ -24,7 +24,7 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'PYTHON|3.11' // Configura o servidor automaticamente para Python!
+      linuxFxVersion: 'PYTHON|3.14' // Configura o servidor automaticamente para Python!
     }
   }
 }
