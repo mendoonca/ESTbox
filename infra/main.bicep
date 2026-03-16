@@ -31,3 +31,62 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
 
 // 3. Imprimir o link final do site no terminal quando acabar
 output siteUrl string = 'https://${webApp.properties.defaultHostName}'
+
+
+// --- NOVA PARTE: BASE DE DADOS COSMOS DB ---
+
+// Nome único para o CosmosDB (só aceita minúsculas e números)
+param cosmosDbName string = 'estbox-db-${uniqueString(resourceGroup().id)}'
+
+// 4. Criar a Conta do CosmosDB (Modo Serverless)
+resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+  name: cosmosDbName
+  location: location
+  kind: 'GlobalDocumentDB'
+  properties: {
+    databaseAccountOfferType: 'Standard'
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: false
+      }
+    ]
+    capabilities: [
+      {
+        name: 'EnableServerless' // POUPAR CRÉDITOS!
+      }
+    ]
+  }
+}
+
+// 5. Criar a Base de Dados (Onde tudo fica guardado)
+resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+  parent: cosmosDbAccount
+  name: 'ESTboxDB'
+  properties: {
+    resource: {
+      id: 'ESTboxDB'
+    }
+  }
+}
+
+// 6. Criar o Contentor/Tabela para os Veículos
+resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
+  parent: database
+  name: 'Veiculos'
+  properties: {
+    resource: {
+      id: 'Veiculos'
+      partitionKey: {
+        paths: [
+          '/id'
+        ]
+        kind: 'Hash'
+      }
+    }
+  }
+}
+
+// 7. Mostrar o Link da Base de Dados no final
+output cosmosEndpoint string = cosmosDbAccount.properties.documentEndpoint
