@@ -1,10 +1,197 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-PT">
 <head>
-    <title>ESTbox</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESTbox | Diário de Bordo Digital</title>
+    <style>
+        :root {
+            --primary-color: #0056b3;
+            --secondary-color: #f8f9fa;
+            --text-color: #333;
+            --accent-color: #ff9800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* Header & Nav */
+        header {
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 5%;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .logo span {
+            color: var(--accent-color);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #003d82 100%);
+            color: white;
+            text-align: center;
+            padding: 150px 20px 100px;
+            margin-top: 60px;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: auto;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #e68a00;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 5%;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 50px;
+            color: var(--primary-color);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        /* Footer / Team */
+        footer {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .team-info {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #bdc3c7;
+        }
+    </style>
 </head>
 <body>
-    <h1>Bem-vindo à ESTbox!</h1>
-    <p>O nosso projeto de Computação em Nuvem está online no Azure.</p>
+
+    <header>
+        <nav>
+            <div class="logo">EST<span>box</span></div>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>O seu diário de bordo automóvel inteligente</h1>
+        <p>Modernize e centralize o registo de manutenções da sua viatura. A ESTbox é uma solução digital alojada na nuvem que substitui os tradicionais livros de revisões físicos.</p>
+        <a href="#funcionalidades" class="btn">Conhecer Funcionalidades</a>
+    </section>
+
+    <section id="funcionalidades" class="features">
+        <h2 class="section-title">Principais Funcionalidades</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Centralização de Dados</h3>
+                <p>Mantenha um histórico cronológico de todas as intervenções mecânicas realizadas nos seus veículos num repositório único e seguro.</p>
+            </div>
+            <div class="card">
+                <h3>Gestão Documental</h3>
+                <p>Faça o upload seguro de faturas e fotografias associadas às manutenções, salvaguardando o histórico na cloud.</p>
+            </div>
+            <div class="card">
+                <h3>Alertas e Notificações</h3>
+                <p>Seja notificado proativamente sobre datas cruciais, como a próxima Inspeção Periódica Obrigatória ou validade do seguro.</p>
+            </div>
+            <div class="card">
+                <h3>Análise de Custos</h3>
+                <p>Acompanhe o total gasto na manutenção de cada veículo ao longo do tempo através de um painel de controlo claro.</p>
+            </div>
+            <div class="card">
+                <h3>Assistente IA do Manual </h3>
+                <p>Nunca mais leia manuais extensos. Faça o upload do manual do seu carro e tire dúvidas instantâneas com o nosso assistente virtual.</p>
+            </div>
+            <div class="card">
+                <h3>Certificado Anti-Fraude</h3>
+                <p>Aumente o valor do seu veículo no mercado de usados. Geramos um "Passaporte Digital" com um QR.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="team-info">
+            <p>Desenvolvido por: Diogo Santos, João Mendonça e Martim Carvalho</p>
+            <p>Ano Letivo 2025/2026 </p>
+        </div>
+    </footer>
+
 </body>
 </html>
