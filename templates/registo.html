@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <title>ESTbox | Criar Conta</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f8f9fa; }
+        .form-card { background: white; padding: 40px; border-radius: 10px; shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { display: block; width: 100%; margin: 10px 0; padding: 10px; }
+        .btn { background: #ff9800; color: white; border: none; cursor: pointer; padding: 10px 20px; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="form-card">
+        <h2>Criar Conta na ESTbox</h2>
+        <form action="/registo" method="POST">
+            <input type="email" name="email" placeholder="O seu Email" required>
+            <input type="password" name="password" placeholder="Escolha uma Password" required>
+            <button type="submit" class="btn">Registar</button>
+        </form>
+    </div>
+</body>
+</html>
