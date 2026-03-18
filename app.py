@@ -17,7 +17,7 @@ KEY = os.environ.get("COSMOS_KEY")
 client = CosmosClient(URL, credential=KEY)
 database = client.get_database_client("ESTboxDB")
 container = database.get_container_client("Veiculos")
-user_container = database.get_container_client("Users") # Para guardar os utilizadores
+users_container = database.get_container_client("Users") # Para guardar os utilizadores
 
 # Rota principal (Onde vai estar o formulário)
 @app.route('/')
