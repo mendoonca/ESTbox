@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request
-from azure.cosmos import CosmosClient
+from flask import Flask, render_template, request, redirect, url_for, flash
+from azure.cosmos import CosmosClient, PartitionKey
+from werkzeug.security import generate_password_hash, check_password_hash
 import uuid # Usado para gerar um ID único para cada carro
 import os
 
 # Inicializa a aplicação
 app = Flask(__name__)
+app.secret_key = 'chave_secreta_para_sessões' # Necessário para usar flash messages
 
 # --- CONFIGURAÇÕES DO COSMOS DB ---
 # SUBSTITUI ESTES VALORES PELOS QUE ESTÃO NO PORTAL DO AZURE (Passo 1)
@@ -15,6 +17,7 @@ KEY = os.environ.get("COSMOS_KEY")
 client = CosmosClient(URL, credential=KEY)
 database = client.get_database_client("ESTboxDB")
 container = database.get_container_client("Veiculos")
+user_container = database.get_container_client("Users") # Para guardar os utilizadores
 
 # Rota principal (Onde vai estar o formulário)
 @app.route('/')
@@ -45,6 +48,29 @@ def adicionar_veiculo():
 
     # 4. Mostrar uma mensagem de sucesso
     return f"<h1>Sucesso!</h1><p>O veículo {marca} {modelo} ({matricula}) foi guardado na base de dados!</p><a href='/'>Voltar</a>"
+
+@app.route('/registo', methods=['GET', 'POST'])
+def registo():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        # Encriptar a password (Segurança Máxima para o Professor ver!)
+        hashed_password = generate_password_hash(password)
+        
+        user_item = {
+            'id': email, # O ID no CosmosDB tem de ser único, o email serve bem
+            'email': email,
+            'password': hashed_password
+        }
+        
+        try:
+            users_container.create_item(body=user_item)
+            return "<h1>Conta criada com sucesso no CosmosDB!</h1> <a href='/'>Voltar</a>"
+        except Exception as e:
+            return f"Erro ao criar conta: {str(e)}"
+
+    return render_template('registo.html')
 
 #   !! Apenas para testar localmente no nosso computador !!
 if __name__ == '__main__':
