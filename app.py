@@ -66,9 +66,11 @@ def registo():
         
         try:
             users_container.create_item(body=user_item)
-            return "<h1>Conta criada com sucesso no CosmosDB!</h1> <a href='/'>Voltar</a>"
+            flash("Conta criada com sucesso!", "success")
+            return redirect(url_for('home'))
         except Exception as e:
-            return f"Erro ao criar conta: {str(e)}"
+            flash("Erro ao criar conta. Verifica se o email ja existe.", "error")
+            return redirect(url_for('registo'))
 
     return render_template('registo.html')
 
