@@ -49,10 +49,45 @@
             font-size: 1.8rem;
             font-weight: bold;
             color: var(--primary-color);
+            text-decoration: none;
         }
 
         .logo span {
             color: var(--accent-color);
+        }
+
+        /* Auth Buttons */
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn-login {
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: bold;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .btn-login:hover {
+            background-color: #f0f4f8; /* Fundo subtil ao passar o rato */
+        }
+
+        .btn-registar {
+            text-decoration: none;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            padding: 8px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-registar:hover {
+            background-color: #003d82; /* Cor mais escura ao passar o rato */
         }
 
         /* Hero Section */
@@ -147,7 +182,12 @@
 
     <header>
         <nav>
-            <div class="logo">EST<span>box</span></div>
+            <a href="#" class="logo">EST<span>box</span></a>
+            
+            <div class="nav-buttons">
+                <a href="#login" class="btn-login">Login</a>
+                <a href="#registar" class="btn-registar">Registar</a>
+            </div>
         </nav>
     </header>
 
