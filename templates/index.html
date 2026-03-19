@@ -210,8 +210,12 @@
             <a href="#" class="logo">EST<span>box</span></a>
             
             <div class="nav-buttons">
-                <a href="#login" class="btn-login">Login</a>
-                <a href="/registo" class="btn-registar">Registar</a>
+                {% if session.get('user_email') %}
+                    <a href="/conta" class="btn-registar">Conta</a>
+                {% else %}
+                    <a href="/login" class="btn-login">Login</a>
+                    <a href="/registo" class="btn-registar">Registar</a>
+                {% endif %}
             </div>
         </nav>
     </header>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <title>ESTbox | Conta</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f8f9fa; color: #333; }
+        .wrap { max-width: 800px; margin: 60px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 10px; padding: 28px; box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
+        .btn { display: inline-block; margin-top: 16px; background: #0056b3; color: white; text-decoration: none; padding: 10px 16px; border-radius: 6px; }
+        .btn-secondary { margin-left: 8px; background: #2c3e50; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="card">
+            <h2>A tua Conta</h2>
+            <p>Conta autenticada: <strong>{{ email }}</strong></p>
+            <a class="btn" href="/">Voltar ao inicio</a>
+            <a class="btn btn-secondary" href="/logout">Terminar sessao</a>
+        </div>
+    </div>
+</body>
+</html>

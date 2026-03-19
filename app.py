@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from azure.cosmos import CosmosClient, PartitionKey
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid # Usado para gerar um ID único para cada carro
@@ -24,6 +24,49 @@ users_container = database.get_container_client("Users") # Para guardar os utili
 def home():
     # O Python vai à pasta 'templates' e devolve o nosso ficheiro HTML!
     return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        try:
+            query = "SELECT * FROM c WHERE c.email = @email"
+            parameters = [{"name": "@email", "value": email}]
+            users = list(users_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+
+            if users and check_password_hash(users[0]['password'], password):
+                session['user_email'] = email
+                flash("Login efetuado com sucesso!", "success")
+                return redirect(url_for('home'))
+
+            flash("Email ou password invalidos.", "error")
+            return redirect(url_for('login'))
+        except Exception:
+            flash("Erro ao tentar iniciar sessao.", "error")
+            return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+@app.route('/conta')
+def conta():
+    user_email = session.get('user_email')
+    if not user_email:
+        flash("Precisas de iniciar sessao para aceder a conta.", "error")
+        return redirect(url_for('home'))
+
+    return render_template('conta.html', email=user_email)
+
+@app.route('/logout')
+def logout():
+    session.pop('user_email', None)
+    flash("Sessao terminada.", "success")
+    return redirect(url_for('home'))
 
 # Nova rota para receber os dados do formulário e guardar no CosmosDB
 @app.route('/adicionar_veiculo', methods=['POST'])
@@ -66,9 +109,10 @@ def registo():
         
         try:
             users_container.create_item(body=user_item)
+            session['user_email'] = email
             flash("Conta criada com sucesso!", "success")
             return redirect(url_for('home'))
-        except Exception as e:
+        except Exception:
             flash("Erro ao criar conta. Verifica se o email ja existe.", "error")
             return redirect(url_for('registo'))
 
