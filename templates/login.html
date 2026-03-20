@@ -2,12 +2,13 @@
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
-    <title>ESTbox | Criar Conta</title>
+    <title>ESTbox | Login</title>
     <style>
         body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f8f9fa; }
-        .form-card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .form-card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 360px; }
         input { display: block; width: 100%; margin: 10px 0; padding: 10px; }
-        .btn { background: #ff9800; color: white; border: none; cursor: pointer; padding: 10px 20px; width: 100%; }
+        .btn { background: #0056b3; color: white; border: none; cursor: pointer; padding: 10px 20px; width: 100%; }
+        .link { display: block; margin-top: 12px; text-align: center; color: #0056b3; text-decoration: none; }
         .flash { border-radius: 6px; padding: 10px 12px; margin: 0 0 12px 0; font-weight: 600; }
         .flash-error { background: #fdecec; color: #a02929; border: 1px solid #f4b7b7; }
         .flash-success { background: #e8f7ee; color: #1f7a3d; border: 1px solid #b8e6c9; }
@@ -15,7 +16,7 @@
 </head>
 <body>
     <div class="form-card">
-        <h2>Criar Conta na ESTbox</h2>
+        <h2>Entrar na ESTbox</h2>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -23,11 +24,12 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <form action="/registo" method="POST">
+        <form action="/login" method="POST">
             <input type="email" name="email" placeholder="O seu Email" required>
-            <input type="password" name="password" placeholder="Escolha uma Password" required>
-            <button type="submit" class="btn">Registar</button>
+            <input type="password" name="password" placeholder="A sua Password" required>
+            <button type="submit" class="btn">Login</button>
         </form>
+        <a class="link" href="/registo">Ainda não tens conta? Regista-te</a>
     </div>
 </body>
 </html>

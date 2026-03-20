@@ -171,6 +171,31 @@
             padding: 40px 20px;
         }
 
+        .flash-wrapper {
+            max-width: 1200px;
+            margin: 85px auto 0;
+            padding: 0 5%;
+        }
+
+        .flash {
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .flash-success {
+            background-color: #e8f7ee;
+            color: #1f7a3d;
+            border: 1px solid #b8e6c9;
+        }
+
+        .flash-error {
+            background-color: #fdecec;
+            color: #a02929;
+            border: 1px solid #f4b7b7;
+        }
+
         .team-info {
             margin-top: 20px;
             font-size: 0.9rem;
@@ -185,11 +210,25 @@
             <a href="#" class="logo">EST<span>box</span></a>
             
             <div class="nav-buttons">
-                <a href="#login" class="btn-login">Login</a>
-                <a href="registo.html" class="btn-registar">Registar</a>
+                {% if session.get('user_email') %}
+                    <a href="/conta" class="btn-registar">Conta</a>
+                {% else %}
+                    <a href="/login" class="btn-login">Login</a>
+                    <a href="/registo" class="btn-registar">Registar</a>
+                {% endif %}
             </div>
         </nav>
     </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-wrapper">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
     <section class="hero">
         <h1>O seu diário de bordo automóvel inteligente</h1>
