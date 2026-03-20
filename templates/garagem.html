@@ -1,0 +1,22 @@
+<h2>A Minha Garagem</h2>
+
+<form action="/adicionar_veiculo" method="POST">
+    <input type="text" name="marca" placeholder="Marca" required>
+    <input type="text" name="modelo" placeholder="Modelo" required>
+    <input type="text" name="matricula" placeholder="Matrícula" required>
+    <button type="submit">Adicionar Carro</button>
+</form>
+
+<hr>
+
+<div class="lista-carros">
+    {% for carro in carros %}
+        <div class="card">
+            <h3>{{ carro.marca }} {{ carro.modelo }}</h3>
+            <p>Matrícula: {{ carro.id }}</p>
+            <a href="/historico/{{ carro.id }}">Ver Manutenções</a>
+        </div>
+    {% else %}
+        <p>Ainda não tens carros registados.</p>
+    {% endfor %}
+</div>
