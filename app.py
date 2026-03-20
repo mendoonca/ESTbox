@@ -118,28 +118,34 @@ def registo():
 
     return render_template('registo.html')
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        # Encriptar a password
-        hashed_password = generate_password_hash(password)
-        
-        user_item = {
-            'id': email, # O ID no CosmosDB tem de ser único, o email serve bem
-            'email': email,
-            'password': hashed_password
-        }
-        
-        try:
-            users_container.create_item(body=user_item)
-            return "<h1>Conta criada com sucesso no CosmosDB!</h1> <a href='/'>Voltar</a>"
-        except Exception as e:
-            return f"Erro ao criar conta: {str(e)}"
+veiculos_container = database.get_container_client("Veiculos")
 
-    return render_template('register.html')
+@app.route('/garagem')
+def garagem():
+    if 'user' not in session:
+        return redirect(url_for('registo'))
+    
+    # Procurar apenas os veículos deste utilizador
+    user_email = session['user']
+    query = f"SELECT * FROM c WHERE c.user_email = '{user_email}'"
+    meus_carros = list(veiculos_container.query_items(query, enable_cross_partition_query=True))
+    
+    return render_template('garagem.html', carros=meus_carros)
+
+@app.route('/adicionar_veiculo', methods=['POST'])
+def adicionar_veiculo():
+    if 'user' not in session: return redirect(url_for('registo'))
+
+    novo_veiculo = {
+        'id': request.form.get('matricula'), # A matrícula é um bom ID único
+        'user_email': session['user'],
+        'marca': request.form.get('marca'),
+        'modelo': request.form.get('modelo'),
+        'ano': request.form.get('ano')
+    }
+    
+    veiculos_container.create_item(body=novo_veiculo)
+    return redirect(url_for('garagem'))
 
 #   !! Apenas para testar localmente no nosso computador !!
 if __name__ == '__main__':
