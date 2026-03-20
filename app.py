@@ -118,6 +118,29 @@ def registo():
 
     return render_template('registo.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        # Encriptar a password
+        hashed_password = generate_password_hash(password)
+        
+        user_item = {
+            'id': email, # O ID no CosmosDB tem de ser único, o email serve bem
+            'email': email,
+            'password': hashed_password
+        }
+        
+        try:
+            users_container.create_item(body=user_item)
+            return "<h1>Conta criada com sucesso no CosmosDB!</h1> <a href='/'>Voltar</a>"
+        except Exception as e:
+            return f"Erro ao criar conta: {str(e)}"
+
+    return render_template('register.html')
+
 #   !! Apenas para testar localmente no nosso computador !!
 if __name__ == '__main__':
     app.run(debug=True)
