@@ -140,6 +140,25 @@ def adicionar_veiculo():
 
     return redirect(url_for('garagem'))
 
+
+manutencoes_container = database.get_container_client("Manutencoes")
+
+@app.route('/veiculo/<matricula>')
+def historico(matricula):
+    if 'user_email' not in session: return redirect(url_for('login'))
+    
+    # Procurar todas as manutenções desta matrícula
+    query = "SELECT * FROM c WHERE c.matricula = @matricula ORDER BY c.data DESC"
+    parameters = [{"name": "@matricula", "value": matricula}]
+    
+    lista_revisoes = list(manutencoes_container.query_items(
+        query=query, 
+        parameters=parameters, 
+        enable_cross_partition_query=True
+    ))
+    
+    return render_template('historico.html', matricula=matricula, revisoes=lista_revisoes)
+
 #   !! Apenas para testar localmente no nosso computador !!
 if __name__ == '__main__':
     app.run(debug=True)
