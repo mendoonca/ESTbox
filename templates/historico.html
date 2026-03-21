@@ -1,0 +1,29 @@
+<h2>Histórico do Veículo: {{ matricula }}</h2>
+
+<form action="/adicionar_manutencao" method="POST">
+    <input type="hidden" name="matricula" value="{{ matricula }}">
+    <input type="date" name="data" required>
+    <input type="text" name="descricao" placeholder="O que foi feito? (Ex: Mudança de Óleo)" required>
+    <input type="number" name="km" placeholder="Quilómetros atuais" required>
+    <input type="number" step="0.01" name="custo" placeholder="Custo (€)">
+    <button type="submit">Registar Manutenção</button>
+</form>
+
+<hr>
+
+<table>
+    <tr>
+        <th>Data</th>
+        <th>Descrição</th>
+        <th>KM</th>
+        <th>Custo</th>
+    </tr>
+    {% for r in revisoes %}
+    <tr>
+        <td>{{ r.data }}</td>
+        <td>{{ r.descricao }}</td>
+        <td>{{ r.km }} km</td>
+        <td>{{ r.custo }} €</td>
+    </tr>
+    {% endfor %}
+</table>
