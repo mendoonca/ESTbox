@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-from azure.cosmos import CosmosClient, PartitionKey
+from azure.cosmos import CosmosClient
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid # Usado para gerar um ID único para cada carro
 import os
@@ -16,7 +16,6 @@ KEY = os.environ.get("COSMOS_KEY")
 # Iniciar a ligação à Base de Dados e escolher a Tabela (Container)
 client = CosmosClient(URL, credential=KEY)
 database = client.get_database_client("ESTboxDB")
-container = database.get_container_client("Veiculos")
 users_container = database.get_container_client("Users") # Para guardar os utilizadores
 
 # Rota principal (Onde vai estar o formulário)
@@ -68,30 +67,6 @@ def logout():
     flash("Sessao terminada.", "success")
     return redirect(url_for('home'))
 
-# Nova rota para receber os dados do formulário e guardar no CosmosDB
-@app.route('/adicionar_veiculo', methods=['POST'])
-def adicionar_veiculo():
-    # 1. Apanhar os dados que o utilizador escreveu no HTML do Martim
-    marca = request.form.get('marca')
-    modelo = request.form.get('modelo')
-    matricula = request.form.get('matricula')
-    ano = request.form.get('ano')
-
-    # 2. Criar o documento JSON (O formato que o CosmosDB usa)
-    novo_veiculo = {
-        "id": str(uuid.uuid4()), # O CosmosDB exige sempre um campo "id" único
-        "marca": marca,
-        "modelo": modelo,
-        "matricula": matricula,
-        "ano": ano
-    }
-
-    # 3. Guardar na Base de Dados do Azure!
-    container.create_item(body=novo_veiculo)
-
-    # 4. Mostrar uma mensagem de sucesso
-    return f"<h1>Sucesso!</h1><p>O veículo {marca} {modelo} ({matricula}) foi guardado na base de dados!</p><a href='/'>Voltar</a>"
-
 @app.route('/registo', methods=['GET', 'POST'])
 def registo():
     if request.method == 'POST':
@@ -122,29 +97,47 @@ veiculos_container = database.get_container_client("Veiculos")
 
 @app.route('/garagem')
 def garagem():
-    if 'user' not in session:
+    if 'user_email' not in session:
+        flash("Precisas de iniciar sessao para ver a garagem.", "error")
         return redirect(url_for('registo'))
     
     # Procurar apenas os veículos deste utilizador
-    user_email = session['user']
-    query = f"SELECT * FROM c WHERE c.user_email = '{user_email}'"
-    meus_carros = list(veiculos_container.query_items(query, enable_cross_partition_query=True))
+    user_email = session['user_email']
+    query = "SELECT * FROM c WHERE c.user_email = @user_email"
+    parameters = [{"name": "@user_email", "value": user_email}]
+    meus_carros = list(veiculos_container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
     
     return render_template('garagem.html', carros=meus_carros)
 
 @app.route('/adicionar_veiculo', methods=['POST'])
 def adicionar_veiculo():
-    if 'user' not in session: return redirect(url_for('registo'))
+    if 'user_email' not in session:
+        flash("Precisas de iniciar sessao para adicionar um veiculo.", "error")
+        return redirect(url_for('registo'))
+
+    matricula = request.form.get('matricula')
+    if not matricula:
+        matricula = str(uuid.uuid4())
 
     novo_veiculo = {
-        'id': request.form.get('matricula'), # A matrícula é um bom ID único
-        'user_email': session['user'],
+        'id': matricula,
+        'user_email': session['user_email'],
+        'matricula': matricula,
         'marca': request.form.get('marca'),
         'modelo': request.form.get('modelo'),
         'ano': request.form.get('ano')
     }
     
-    veiculos_container.create_item(body=novo_veiculo)
+    try:
+        veiculos_container.create_item(body=novo_veiculo)
+        flash("Veiculo adicionado com sucesso!", "success")
+    except Exception:
+        flash("Erro ao adicionar veiculo. Verifica se a matricula ja existe.", "error")
+
     return redirect(url_for('garagem'))
 
 #   !! Apenas para testar localmente no nosso computador !!
