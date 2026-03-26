@@ -71,8 +71,25 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15
   }
 }
 
-// 6. Criar o Contentor/Tabela para os Veículos
-resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
+// 6. Criar o Contentor/Tabela para os Utilizadores
+resource usersContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
+  parent: database
+  name: 'Users'
+  properties: {
+    resource: {
+      id: 'Users'
+      partitionKey: {
+        paths: [
+          '/id'
+        ]
+        kind: 'Hash'
+      }
+    }
+  }
+}
+
+// 7. Criar o Contentor/Tabela para os Veículos
+resource veiculosContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
   parent: database
   name: 'Veiculos'
   properties: {
@@ -88,5 +105,22 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
   }
 }
 
-// 7. Mostrar o Link da Base de Dados no final
+// 8. Criar o Contentor/Tabela para as Manutenções
+resource manutencoesContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
+  parent: database
+  name: 'Manutencoes'
+  properties: {
+    resource: {
+      id: 'Manutencoes'
+      partitionKey: {
+        paths: [
+          '/matricula'
+        ]
+        kind: 'Hash'
+      }
+    }
+  }
+}
+
+// 9. Mostrar o Link da Base de Dados no final
 output cosmosEndpoint string = cosmosDbAccount.properties.documentEndpoint
