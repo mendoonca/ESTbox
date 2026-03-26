@@ -9,7 +9,6 @@ app = Flask(__name__)
 app.secret_key = 'chave_secreta_para_sessões' # Necessário para usar flash messages
 
 # --- CONFIGURAÇÕES DO COSMOS DB ---
-# SUBSTITUI ESTES VALORES PELOS QUE ESTÃO NO PORTAL DO AZURE (Passo 1)
 URL = os.environ.get("COSMOS_URL")
 KEY = os.environ.get("COSMOS_KEY")
 
