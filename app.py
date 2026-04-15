@@ -79,6 +79,8 @@ def registo():
             'id': email, # O ID no CosmosDB tem de ser único, o email serve bem
             'email': email,
             'password': hashed_password
+            
+            # ----------------- Adicionar mais campos aqui, como nome, data de nascimento, etc. -----------------
         }
         
         try:
