@@ -323,7 +323,7 @@
                 <div class="card">
                     <h3>{{ carro.marca }} {{ carro.modelo }}</h3>
                     <p>Matrícula: {{ carro.id }}</p>
-                    <a href="/historico/{{ carro.id }}">Ver Manutenções</a>
+                    <a href="{{ url_for('historico', matricula=carro.id) }}">Ver Manutenções</a>
                 </div>
             {% else %}
                 <p>Ainda não tens carros registados.</p>

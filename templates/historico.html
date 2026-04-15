@@ -1,6 +1,6 @@
 <h2>Histórico do Veículo: {{ matricula }}</h2>
 
-<form action="/adicionar_manutencao" method="POST">
+<form action="{{ url_for('adicionar_manutencao') }}" method="POST">
     <input type="hidden" name="matricula" value="{{ matricula }}">
     <input type="date" name="data" required>
     <input type="text" name="descricao" placeholder="O que foi feito? (Ex: Mudança de Óleo)" required>

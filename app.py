@@ -3,6 +3,7 @@ from azure.cosmos import CosmosClient
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import os
+import uuid
 
 # Inicializa a aplicação
 app = Flask(__name__)
@@ -145,9 +146,28 @@ def adicionar_veiculo():
 
 manutencoes_container = database.get_container_client("Manutencoes")
 
+@app.route('/historico/<matricula>')
 @app.route('/veiculo/<matricula>')
 def historico(matricula):
-    if 'user_email' not in session: return redirect(url_for('login'))
+    if 'user_email' not in session:
+        flash("Precisas de iniciar sessao para ver o historico.", "error")
+        return redirect(url_for('login'))
+
+    user_email = session['user_email']
+    vehicle_query = "SELECT * FROM c WHERE c.id = @matricula AND c.user_email = @user_email"
+    vehicle_parameters = [
+        {"name": "@matricula", "value": matricula},
+        {"name": "@user_email", "value": user_email}
+    ]
+    veiculo = list(veiculos_container.query_items(
+        query=vehicle_query,
+        parameters=vehicle_parameters,
+        enable_cross_partition_query=True
+    ))
+
+    if not veiculo:
+        flash("Nao tens permissao para ver este historico.", "error")
+        return redirect(url_for('garagem'))
     
     # Procurar todas as manutenções desta matrícula
     query = "SELECT * FROM c WHERE c.matricula = @matricula ORDER BY c.data DESC"
@@ -160,6 +180,63 @@ def historico(matricula):
     ))
     
     return render_template('historico.html', matricula=matricula, revisoes=lista_revisoes)
+
+
+@app.route('/adicionar_manutencao', methods=['POST'])
+def adicionar_manutencao():
+    if 'user_email' not in session:
+        flash("Precisas de iniciar sessao para registar uma manutencao.", "error")
+        return redirect(url_for('login'))
+
+    matricula = (request.form.get('matricula') or '').strip().upper()
+    data = (request.form.get('data') or '').strip()
+    descricao = (request.form.get('descricao') or '').strip()
+    km_raw = (request.form.get('km') or '').strip()
+    custo_raw = (request.form.get('custo') or '').strip()
+
+    if not matricula or not data or not descricao or not km_raw:
+        flash("Preenche todos os campos obrigatorios da manutencao.", "error")
+        return redirect(url_for('historico', matricula=matricula))
+
+    try:
+        km = int(km_raw)
+        custo = float(custo_raw) if custo_raw else None
+    except ValueError:
+        flash("KM e custo precisam de valores validos.", "error")
+        return redirect(url_for('historico', matricula=matricula))
+
+    vehicle_query = "SELECT * FROM c WHERE c.id = @matricula AND c.user_email = @user_email"
+    vehicle_parameters = [
+        {"name": "@matricula", "value": matricula},
+        {"name": "@user_email", "value": session['user_email']}
+    ]
+    veiculo = list(veiculos_container.query_items(
+        query=vehicle_query,
+        parameters=vehicle_parameters,
+        enable_cross_partition_query=True
+    ))
+
+    if not veiculo:
+        flash("Nao tens permissao para adicionar manutencoes a este veiculo.", "error")
+        return redirect(url_for('garagem'))
+
+    nova_manutencao = {
+        'id': uuid.uuid4().hex,
+        'user_email': session['user_email'],
+        'matricula': matricula,
+        'data': data,
+        'descricao': descricao,
+        'km': km,
+        'custo': custo
+    }
+
+    try:
+        manutencoes_container.create_item(body=nova_manutencao)
+        flash("Manutencao registada com sucesso!", "success")
+    except Exception:
+        flash("Erro ao registar manutencao.", "error")
+
+    return redirect(url_for('historico', matricula=matricula))
 
 #   !! Apenas para testar localmente no nosso computador !!
 if __name__ == '__main__':
