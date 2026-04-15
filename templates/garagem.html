@@ -3,7 +3,9 @@
 <form action="/adicionar_veiculo" method="POST">
     <input type="text" name="marca" placeholder="Marca" required>
     <input type="text" name="modelo" placeholder="Modelo" required>
-    <input type="text" name="matricula" placeholder="Matrícula" required>
+    <input type="text" name="matricula" placeholder="Matrícula" required minlength="6" maxlength="6" 
+            pattern="[A-Z0-9]{6}" title="A matrícula tem de ter exatamente 6 caracteres, usar apenas maiúsculas e números" 
+            oninput="this.value = this.value.toUpperCase()">
     <input type="text" name="ano" placeholder="Ano" required>
     <button type="submit">Adicionar Carro</button>
 </form>

@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from azure.cosmos import CosmosClient
 from werkzeug.security import generate_password_hash, check_password_hash
-import uuid # Usado para gerar um ID único para cada carro
+import re
 import os
 
 # Inicializa a aplicação
@@ -120,9 +120,10 @@ def adicionar_veiculo():
         flash("Precisas de iniciar sessao para adicionar um veiculo.", "error")
         return redirect(url_for('registo'))
 
-    matricula = request.form.get('matricula')
-    if not matricula:
-        matricula = str(uuid.uuid4())
+    matricula = (request.form.get('matricula') or '').strip().upper()
+    if not re.fullmatch(r'[A-Z0-9]{6}', matricula):
+        flash("A matricula tem de ter exatamente 6 caracteres, em maiusculas, e so pode conter letras e numeros.", "error")
+        return redirect(url_for('garagem'))
 
     novo_veiculo = {
         'id': matricula,
