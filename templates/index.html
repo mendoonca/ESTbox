@@ -212,6 +212,7 @@
             <div class="nav-buttons">
                 {% if session.get('user_email') %}
                     <a href="/conta" class="btn-registar">Conta</a>
+                    <a href="/garagem" class="btn-registar">Garagem</a>
                 {% else %}
                     <a href="/login" class="btn-login">Login</a>
                     <a href="/registo" class="btn-registar">Registar</a>
@@ -234,9 +235,6 @@
         <h1>O seu diário de bordo automóvel inteligente</h1>
         <p>Modernize e centralize o registo de manutenções da sua viatura. A ESTbox é uma solução digital alojada na nuvem que substitui os tradicionais livros de revisões físicos.</p>
         <a href="#funcionalidades" class="btn">Conhecer Funcionalidades</a>
-        {% if session.get('user_email') %}
-        <a href="/garagem" class="btn">Aceder à Garagem</a>
-        {% endif %}
     </section>
 
     <section id="funcionalidades" class="features">
