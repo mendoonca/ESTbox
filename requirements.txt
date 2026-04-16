@@ -1,4 +1,5 @@
 Flask
 azure-cosmos
+azure-storage-blob
 python-dotenv
 werkzeug

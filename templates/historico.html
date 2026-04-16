@@ -1,11 +1,12 @@
 <h2>Histórico do Veículo: {{ matricula }}</h2>
 
-<form action="{{ url_for('adicionar_manutencao') }}" method="POST">
+<form action="{{ url_for('adicionar_manutencao') }}" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="matricula" value="{{ matricula }}">
     <input type="date" name="data" required>
     <input type="text" name="descricao" placeholder="O que foi feito? (Ex: Mudança de Óleo)" required>
     <input type="number" name="km" placeholder="Quilómetros atuais" required>
     <input type="number" step="0.01" name="custo" placeholder="Custo (€)">
+    <input type="file" name="fatura" accept="image/png,image/jpeg,image/webp">
     <button type="submit">Registar Manutenção</button>
 </form>
 
@@ -17,6 +18,7 @@
         <th>Descrição</th>
         <th>KM</th>
         <th>Custo</th>
+        <th>Fatura</th>
     </tr>
     {% for r in revisoes %}
     <tr>
@@ -24,6 +26,13 @@
         <td>{{ r.descricao }}</td>
         <td>{{ r.km }} km</td>
         <td>{{ r.custo }} €</td>
+        <td>
+            {% if r.fatura_blob_name and r.id %}
+                <a href="{{ url_for('ver_fatura', manutencao_id=r.id) }}" target="_blank">Ver fatura</a>
+            {% else %}
+                -
+            {% endif %}
+        </td>
     </tr>
     {% endfor %}
 </table>

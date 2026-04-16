@@ -4,6 +4,12 @@ param location string = resourceGroup().location
 // Cria um nome único para a app para não haver conflitos na internet
 param appName string = 'estbox-app-${uniqueString(resourceGroup().id)}'
 
+// Nome único para Storage Account (3-24 chars, minúsculas e números)
+param storageAccountName string = 'estboxsa${uniqueString(resourceGroup().id)}'
+
+// Nome do container Blob onde ficam as faturas
+param blobContainerName string = 'faturas'
+
 // 1. Criar o Plano de Alojamento (O "Computador" no Azure)
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: 'estbox-plan'
@@ -28,9 +34,6 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
     }
   }
 }
-
-// 3. Imprimir o link final do site no terminal quando acabar
-output siteUrl string = 'https://${webApp.properties.defaultHostName}'
 
 
 // --- NOVA PARTE: BASE DE DADOS COSMOS DB ---
@@ -57,6 +60,34 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
         name: 'EnableServerless' // POUPAR CRÉDITOS!
       }
     ]
+  }
+}
+
+// 9. Criar Storage Account para guardar as faturas
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: storageAccountName
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
+    supportsHttpsTrafficOnly: true
+  }
+}
+
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+  parent: storageAccount
+  name: 'default'
+}
+
+resource invoicesContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: blobContainerName
+  properties: {
+    publicAccess: 'None'
   }
 }
 
@@ -122,5 +153,19 @@ resource manutencoesContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
   }
 }
 
-// 9. Mostrar o Link da Base de Dados no final
+// 10. Definir variáveis de ambiente da app para Cosmos e Blob
+resource webAppAppSettings 'Microsoft.Web/sites/config@2022-09-01' = {
+  parent: webApp
+  name: 'appsettings'
+  properties: {
+    COSMOS_URL: cosmosDbAccount.properties.documentEndpoint
+    COSMOS_KEY: cosmosDbAccount.listKeys().primaryMasterKey
+    BLOB_CONNECTION_STRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+    BLOB_CONTAINER_NAME: invoicesContainer.name
+  }
+}
+
+// 11. Mostrar outputs úteis no final
+output siteUrl string = 'https://${webApp.properties.defaultHostName}'
 output cosmosEndpoint string = cosmosDbAccount.properties.documentEndpoint
+output blobContainer string = invoicesContainer.name
