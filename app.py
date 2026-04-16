@@ -167,7 +167,6 @@ def adicionar_veiculo():
 manutencoes_container = database.get_container_client("Manutencoes")
 
 @app.route('/historico/<matricula>')
-@app.route('/veiculo/<matricula>')
 def historico(matricula):
     if 'user_email' not in session:
         flash("Precisas de iniciar sessao para ver o historico.", "error")
@@ -203,6 +202,11 @@ def historico(matricula):
     ))
     
     return render_template('historico.html', matricula=matricula, revisoes=lista_revisoes)
+
+
+@app.route('/veiculo/<matricula>')
+def historico_legado(matricula):
+    return redirect(url_for('historico', matricula=matricula))
 
 
 @app.route('/adicionar_manutencao', methods=['POST'])
