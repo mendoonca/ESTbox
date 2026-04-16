@@ -324,28 +324,20 @@ def ver_fatura(manutencao_id):
 
     manutencao = manutencoes[0]
     blob_name = manutencao.get('fatura_blob_name')
-    matricula = manutencao.get('matricula')
-
     if not blob_name:
         flash("Esta manutencao nao tem fatura anexada.", "error")
-        if matricula:
-            return redirect(url_for('historico', matricula=matricula))
-        return redirect(url_for('garagem'))
+        return redirect(url_for('historico', matricula=manutencao.get('matricula', '')))
 
     if not blob_container_client:
         flash("Blob Storage nao configurado.", "error")
-        if matricula:
-            return redirect(url_for('historico', matricula=matricula))
-        return redirect(url_for('garagem'))
+        return redirect(url_for('historico', matricula=manutencao.get('matricula', '')))
 
     try:
         blob_client = blob_container_client.get_blob_client(blob_name)
         downloaded = blob_client.download_blob().readall()
     except Exception:
         flash("Nao foi possivel obter a fatura.", "error")
-        if matricula:
-            return redirect(url_for('historico', matricula=matricula))
-        return redirect(url_for('garagem'))
+        return redirect(url_for('historico', matricula=manutencao.get('matricula', '')))
 
     content_type = manutencao.get('fatura_content_type') or 'application/octet-stream'
     filename = manutencao.get('fatura_filename') or 'fatura'
