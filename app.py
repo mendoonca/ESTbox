@@ -203,12 +203,6 @@ def historico(matricula):
     
     return render_template('historico.html', matricula=matricula, revisoes=lista_revisoes)
 
-
-@app.route('/veiculo/<matricula>')
-def historico_legado(matricula):
-    return redirect(url_for('historico', matricula=matricula))
-
-
 @app.route('/adicionar_manutencao', methods=['POST'])
 def adicionar_manutencao():
     if 'user_email' not in session:
