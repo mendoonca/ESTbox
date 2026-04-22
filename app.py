@@ -206,6 +206,42 @@ def admin_users():
     ))
     return render_template('admin_users.html', users=users)
 
+@app.route('/admin/users/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_user():
+    if request.method == 'POST':
+        email = (request.form.get('email') or '').strip().lower()
+        password = request.form.get('password')
+        role = normalize_role(request.form.get('role'))
+
+        if not email or not password:
+            flash("Preenche o email e a password do utilizador.", "error")
+            return redirect(url_for('admin_add_user'))
+
+        if get_user_by_email(email):
+            flash("Ja existe um utilizador com esse email.", "error")
+            return redirect(url_for('admin_add_user'))
+
+        role = resolve_user_role(email, role)
+        hashed_password = generate_password_hash(password)
+
+        user_item = {
+            'id': email,
+            'email': email,
+            'password': hashed_password,
+            'role': role
+        }
+
+        try:
+            users_container.create_item(body=user_item)
+            flash("Utilizador criado com sucesso.", "success")
+            return redirect(url_for('admin_users'))
+        except Exception:
+            flash("Erro ao criar o utilizador.", "error")
+            return redirect(url_for('admin_add_user'))
+
+    return render_template('admin_add_user.html')
+
 veiculos_container = database.get_container_client("Veiculos")
 
 @app.route('/admin/vehicles')

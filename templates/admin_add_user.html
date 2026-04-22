@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Gestão de Utilizadores</title>
+    <title>Admin - Adicionar Utilizador</title>
     <style>
         :root {
             --primary-color: #0056b3;
@@ -61,56 +61,26 @@
             flex-wrap: wrap;
         }
 
-        .btn-login,
-        .btn-registar,
         .btn-secondary,
-        .btn-danger {
+        .btn-login {
             text-decoration: none;
             font-weight: bold;
             padding: 8px 15px;
             border-radius: 5px;
             transition: background-color 0.3s;
+            color: white;
+            background-color: var(--primary-color);
         }
 
         .btn-login {
+            background-color: transparent;
             color: var(--primary-color);
         }
 
+        .btn-secondary:hover,
         .btn-login:hover {
-            background-color: #f0f4f8;
-        }
-
-        .btn-registar,
-        .btn-secondary,
-        .btn-danger {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .btn-registar:hover,
-        .btn-secondary:hover {
             background-color: #003d82;
-        }
-
-        .btn-danger {
-            background-color: #dc3545;
-        }
-
-        .btn-danger:hover {
-            background-color: #b02a37;
-        }
-
-        .action-form {
-            display: inline-block;
-            margin: 0;
-        }
-
-        .top-actions {
-            text-align: right;
-            margin: 20px 5% 0;
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
+            color: white;
         }
 
         .page-title {
@@ -123,7 +93,7 @@
 
         .content {
             padding: 20px 5% 60px;
-            max-width: 1200px;
+            max-width: 700px;
             margin: auto;
         }
 
@@ -139,31 +109,54 @@
             color: var(--primary-color);
         }
 
-        table {
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input,
+        select {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
+            padding: 12px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
         }
 
-        th,
-        td {
-            text-align: left;
-            padding: 14px 12px;
-            border-bottom: 1px solid #e0e0e0;
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
         }
 
-        th {
-            background-color: #f8f9fa;
-            color: var(--primary-color);
+        .btn-primary,
+        .btn-cancel {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
         }
 
-        tr:hover {
-            background-color: #f5f7fb;
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
         }
 
-        .empty-state {
-            margin-top: 15px;
-            color: #666;
+        .btn-cancel {
+            background-color: #f0f4f8;
+            color: var(--text-color);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         footer {
@@ -193,41 +186,35 @@
         </nav>
     </header>
 
-    <h1 class="page-title">Gestão de Utilizadores</h1>
-    <div class="top-actions">
-        <a href="{{ url_for('admin_add_user') }}" class="btn-secondary">Adicionar Utilizador</a>
-    </div>
+    <h1 class="page-title">Adicionar Utilizador</h1>
 
     <main class="content">
         <div class="section-card">
-            <h2>Lista de Utilizadores</h2>
-            {% if users %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Email</th>
-                            <th>Função</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                            <tr>
-                                <td>{{ user.email }}</td>
-                                <td>{{ user.role or 'utilizador' }}</td>
-                                <td>
-                                    <a href="{{ url_for('admin_edit_user', email=user.email) }}" class="btn-secondary">Editar</a>
-                                    <form class="action-form" action="{{ url_for('admin_delete_user', email=user.email) }}" method="post">
-                                        <button type="submit" class="btn-danger" onclick="return confirm('Tem a certeza que pretende remover este utilizador?');">Remover</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="empty-state">Ainda não existe nenhum utilizador registado.</p>
-            {% endif %}
+            <h2>Novo Utilizador</h2>
+            <form method="post" action="{{ url_for('admin_add_user') }}">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Função</label>
+                    <select id="role" name="role" required>
+                        <option value="utilizador">Utilizador</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+
+                <div class="button-row">
+                    <button type="submit" class="btn-primary">Criar Utilizador</button>
+                    <a href="{{ url_for('admin_users') }}" class="btn-cancel">Cancelar</a>
+                </div>
+            </form>
         </div>
     </main>
 
