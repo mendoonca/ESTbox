@@ -3,6 +3,7 @@ from azure.cosmos import CosmosClient
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from functools import wraps
 import re
 import os
 import uuid
@@ -19,6 +20,13 @@ KEY = os.environ.get("COSMOS_KEY")
 # --- CONFIGURAÇÕES DO AZURE BLOB STORAGE ---
 BLOB_CONNECTION_STRING = os.environ.get("BLOB_CONNECTION_STRING")
 BLOB_CONTAINER_NAME = os.environ.get("BLOB_CONTAINER_NAME", "faturas")
+DEFAULT_ROLE = "utilizador"
+ALLOWED_ROLES = {"admin", "utilizador"}
+ADMIN_EMAILS = {
+    email.strip().lower()
+    for email in os.environ.get("ADMIN_EMAILS", "").split(",")
+    if email.strip()
+}
 
 # Iniciar a ligação à Base de Dados e escolher a Tabela (Container)
 client = CosmosClient(URL, credential=KEY)
@@ -38,6 +46,64 @@ if BLOB_CONNECTION_STRING:
         blob_service_client = None
         blob_container_client = None
 
+
+def normalize_role(role):
+    role_value = (role or "").strip().lower()
+    if role_value in ALLOWED_ROLES:
+        return role_value
+    return DEFAULT_ROLE
+
+
+def resolve_user_role(email, role):
+    if (email or "").strip().lower() in ADMIN_EMAILS:
+        return "admin"
+    return normalize_role(role)
+
+
+def get_user_by_email(email):
+    query = "SELECT * FROM c WHERE c.email = @email"
+    parameters = [{"name": "@email", "value": email}]
+    users = list(users_container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+    if users:
+        return users[0]
+    return None
+
+
+def admin_required(route_function):
+    @wraps(route_function)
+    def wrapper(*args, **kwargs):
+        user_email = session.get('user_email')
+        if not user_email:
+            flash("Precisas de iniciar sessao para aceder ao painel admin.", "error")
+            return redirect(url_for('login'))
+
+        session_role = session.get('user_role')
+        if not session_role:
+            try:
+                user = get_user_by_email(user_email)
+            except Exception:
+                flash("Nao foi possivel validar a tua permissao de administrador.", "error")
+                return redirect(url_for('home'))
+
+            if not user:
+                flash("Utilizador nao encontrado.", "error")
+                return redirect(url_for('logout'))
+
+            session_role = resolve_user_role(user_email, user.get('role'))
+            session['user_role'] = session_role
+
+        if session_role != 'admin':
+            flash("Nao tens permissao para aceder ao painel admin.", "error")
+            return redirect(url_for('home'))
+
+        return route_function(*args, **kwargs)
+
+    return wrapper
+
 # Rota principal (Onde vai estar o formulário)
 @app.route('/')
 def home():
@@ -51,17 +117,20 @@ def login():
         password = request.form.get('password')
 
         try:
-            query = "SELECT * FROM c WHERE c.email = @email"
-            parameters = [{"name": "@email", "value": email}]
-            users = list(users_container.query_items(
-                query=query,
-                parameters=parameters,
-                enable_cross_partition_query=True
-            ))
+            user = get_user_by_email(email)
 
-            if users and check_password_hash(users[0]['password'], password):
+            if user and check_password_hash(user['password'], password):
+                user_role = resolve_user_role(email, user.get('role'))
                 session['user_email'] = email
+                session['user_role'] = user_role
+
+                if user.get('role') != user_role:
+                    user['role'] = user_role
+                    users_container.replace_item(item=user['id'], body=user)
+
                 flash("Login efetuado com sucesso!", "success")
+                if user_role == 'admin':
+                    return redirect(url_for('admin_dashboard'))
                 return redirect(url_for('home'))
 
             flash("Email ou password invalidos.", "error")
@@ -79,11 +148,12 @@ def conta():
         flash("Precisas de iniciar sessao para aceder a conta.", "error")
         return redirect(url_for('home'))
 
-    return render_template('conta.html', email=user_email)
+    return render_template('conta.html', email=user_email, role=session.get('user_role', DEFAULT_ROLE))
 
 @app.route('/logout')
 def logout():
     session.pop('user_email', None)
+    session.pop('user_role', None)
     flash("Sessao terminada.", "success")
     return redirect(url_for('home'))
 
@@ -92,6 +162,7 @@ def registo():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
+        role = resolve_user_role(email, DEFAULT_ROLE)
         
         # Encriptar a password (Segurança Máxima para o Professor ver!)
         hashed_password = generate_password_hash(password)
@@ -99,7 +170,8 @@ def registo():
         user_item = {
             'id': email, # O ID no CosmosDB tem de ser único, o email serve bem
             'email': email,
-            'password': hashed_password
+            'password': hashed_password,
+            'role': role
             
             # ----------------- Adicionar mais campos aqui, como nome, data de nascimento, etc. -----------------
         }
@@ -107,13 +179,23 @@ def registo():
         try:
             users_container.create_item(body=user_item)
             session['user_email'] = email
+            session['user_role'] = role
             flash("Conta criada com sucesso!", "success")
+            if role == 'admin':
+                return redirect(url_for('admin_dashboard'))
             return redirect(url_for('home'))
         except Exception:
             flash("Erro ao criar conta. Verifica se o email ja existe.", "error")
             return redirect(url_for('registo'))
 
     return render_template('registo.html')
+
+
+@app.route('/admin')
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    return render_template('indexAdmin.html')
 
 veiculos_container = database.get_container_client("Veiculos")
 

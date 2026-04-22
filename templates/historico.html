@@ -304,6 +304,10 @@
                 {% if session.get('user_email') %}
                     <a href="/conta" class="btn-registar">Conta</a>
                     <a href="/garagem" class="btn-registar">Garagem</a>
+                    {% if session.get('user_role') == 'admin' %}
+                        <a href="/admin" class="btn-registar">Admin</a>
+                    {% endif %}
+                    <a href="/logout" class="btn-login">Logout</a>
                 {% else %}
                     <a href="/login" class="btn-login">Login</a>
                     <a href="/registo" class="btn-registar">Registar</a>
