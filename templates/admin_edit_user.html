@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Gestão de Veículos</title>
+    <title>Admin - Editar Utilizador</title>
     <style>
         :root {
             --primary-color: #0056b3;
@@ -61,47 +61,26 @@
             flex-wrap: wrap;
         }
 
-        .btn-login,
-        .btn-registar,
-        .btn-secondary {
+        .btn-secondary,
+        .btn-login {
             text-decoration: none;
             font-weight: bold;
             padding: 8px 15px;
             border-radius: 5px;
             transition: background-color 0.3s;
+            color: white;
+            background-color: var(--primary-color);
         }
 
         .btn-login {
+            background-color: transparent;
             color: var(--primary-color);
         }
 
-        .btn-login:hover {
-            background-color: #f0f4f8;
-        }
-
-        .btn-registar,
-        .btn-secondary,
-        .btn-danger {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .btn-registar:hover,
+        .btn-login:hover,
         .btn-secondary:hover {
             background-color: #003d82;
-        }
-
-        .btn-danger {
-            background-color: #dc3545;
-        }
-
-        .btn-danger:hover {
-            background-color: #b02a37;
-        }
-
-        .action-form {
-            display: inline-block;
-            margin: 0;
+            color: white;
         }
 
         .page-title {
@@ -114,7 +93,7 @@
 
         .content {
             padding: 20px 5% 60px;
-            max-width: 1200px;
+            max-width: 700px;
             margin: auto;
         }
 
@@ -130,31 +109,50 @@
             color: var(--primary-color);
         }
 
-        table {
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input,
+        select {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
+            padding: 12px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
         }
 
-        th,
-        td {
-            text-align: left;
-            padding: 14px 12px;
-            border-bottom: 1px solid #e0e0e0;
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
         }
 
-        th {
-            background-color: #f8f9fa;
-            color: var(--primary-color);
+        .btn-primary,
+        .btn-cancel {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
         }
 
-        tr:hover {
-            background-color: #f5f7fb;
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
         }
 
-        .empty-state {
-            margin-top: 15px;
-            color: #666;
+        .btn-cancel {
+            background-color: #f0f4f8;
+            color: var(--text-color);
         }
 
         footer {
@@ -184,44 +182,32 @@
         </nav>
     </header>
 
-    <h1 class="page-title">Gestão de Veículos</h1>
+    <h1 class="page-title">Editar Utilizador</h1>
 
     <main class="content">
         <div class="section-card">
-            <h2>Lista de Veículos</h2>
-            {% if vehicles %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Matrícula</th>
-                            <th>Marca</th>
-                            <th>Modelo</th>
-                            <th>Ano</th>
-                            <th>Proprietário</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for carro in vehicles %}
-                            <tr>
-                                <td>{{ carro.matricula }}</td>
-                                <td>{{ carro.marca }}</td>
-                                <td>{{ carro.modelo }}</td>
-                                <td>{{ carro.ano }}</td>
-                                <td>{{ carro.user_email }}</td>
-                                <td>
-                                    <a href="{{ url_for('admin_edit_vehicle', matricula=carro.matricula) }}" class="btn-secondary">Editar</a>
-                                    <form class="action-form" action="{{ url_for('admin_delete_vehicle', matricula=carro.matricula) }}" method="post">
-                                        <button type="submit" class="btn-danger" onclick="return confirm('Tem a certeza que pretende remover este veículo?');">Remover</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="empty-state">Ainda não existem veículos registados no sistema.</p>
-            {% endif %}
+            <h2>Detalhes do Utilizador</h2>
+            <form method="post" action="{{ url_for('admin_edit_user', email=user.email) }}">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input id="email" type="text" value="{{ user.email }}" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="role">Função</label>
+                    <select id="role" name="role" required>
+                        <option value="utilizador" {% if user.role != 'admin' %}selected{% endif %}>Utilizador</option>
+                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Administrador</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="password">Nova Password (opcional)</label>
+                    <input id="password" name="password" type="password" placeholder="Deixe em branco para manter a password atual">
+                </div>
+                <div class="button-row">
+                    <button type="submit" class="btn-primary">Guardar Alterações</button>
+                    <a href="{{ url_for('admin_users') }}" class="btn-cancel">Cancelar</a>
+                </div>
+            </form>
         </div>
     </main>
 

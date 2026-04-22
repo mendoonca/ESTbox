@@ -80,7 +80,8 @@
         }
 
         .btn-registar,
-        .btn-secondary {
+        .btn-secondary,
+        .btn-danger {
             background-color: var(--primary-color);
             color: white;
         }
@@ -88,6 +89,19 @@
         .btn-registar:hover,
         .btn-secondary:hover {
             background-color: #003d82;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #b02a37;
+        }
+
+        .action-form {
+            display: inline-block;
+            margin: 0;
         }
 
         .page-title {
@@ -181,6 +195,7 @@
                         <tr>
                             <th>Email</th>
                             <th>Função</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -188,6 +203,12 @@
                             <tr>
                                 <td>{{ user.email }}</td>
                                 <td>{{ user.role or 'utilizador' }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin_edit_user', email=user.email) }}" class="btn-secondary">Editar</a>
+                                    <form class="action-form" action="{{ url_for('admin_delete_user', email=user.email) }}" method="post">
+                                        <button type="submit" class="btn-danger" onclick="return confirm('Tem a certeza que pretende remover este utilizador?');">Remover</button>
+                                    </form>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>

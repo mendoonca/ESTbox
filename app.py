@@ -217,6 +217,130 @@ def admin_vehicles():
     ))
     return render_template('admin_vehicles.html', vehicles=vehicles)
 
+
+def get_vehicle_by_matricula(matricula):
+    query = "SELECT * FROM c WHERE c.id = @matricula"
+    parameters = [{"name": "@matricula", "value": matricula}]
+    vehicles = list(veiculos_container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+    return vehicles[0] if vehicles else None
+
+@app.route('/admin/users/edit/<email>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_user(email):
+    user = get_user_by_email(email)
+    if not user:
+        flash("Utilizador nao encontrado.", "error")
+        return redirect(url_for('admin_users'))
+
+    if request.method == 'POST':
+        role = normalize_role(request.form.get('role'))
+        password = request.form.get('password')
+
+        if password:
+            user['password'] = generate_password_hash(password)
+
+        user['role'] = role
+
+        try:
+            users_container.replace_item(item=user['id'], body=user)
+            flash("Utilizador atualizado com sucesso.", "success")
+            return redirect(url_for('admin_users'))
+        except Exception:
+            flash("Erro ao atualizar o utilizador.", "error")
+            return redirect(url_for('admin_edit_user', email=email))
+
+    return render_template('admin_edit_user.html', user=user)
+
+@app.route('/admin/users/delete/<email>', methods=['POST'])
+@admin_required
+def admin_delete_user(email):
+    if email == session.get('user_email'):
+        flash("Nao podes remover a conta com a qual estas autenticado.", "error")
+        return redirect(url_for('admin_users'))
+
+    user = get_user_by_email(email)
+    if not user:
+        flash("Utilizador nao encontrado.", "error")
+        return redirect(url_for('admin_users'))
+
+    try:
+        users_container.delete_item(item=user['id'], partition_key=user['id'])
+
+        associated_vehicles = list(veiculos_container.query_items(
+            query="SELECT * FROM c WHERE c.user_email = @user_email",
+            parameters=[{"name": "@user_email", "value": email}],
+            enable_cross_partition_query=True
+        ))
+        for vehicle in associated_vehicles:
+            veiculos_container.delete_item(item=vehicle['id'], partition_key=vehicle['id'])
+
+        associated_manutencoes = list(manutencoes_container.query_items(
+            query="SELECT * FROM c WHERE c.user_email = @user_email",
+            parameters=[{"name": "@user_email", "value": email}],
+            enable_cross_partition_query=True
+        ))
+        for manutencao in associated_manutencoes:
+            manutencoes_container.delete_item(item=manutencao['id'], partition_key=manutencao['id'])
+
+        flash("Utilizador e dados associados removidos com sucesso.", "success")
+    except Exception:
+        flash("Erro ao remover o utilizador.", "error")
+
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/vehicles/edit/<matricula>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_vehicle(matricula):
+    vehicle = get_vehicle_by_matricula(matricula)
+    if not vehicle:
+        flash("Veiculo nao encontrado.", "error")
+        return redirect(url_for('admin_vehicles'))
+
+    if request.method == 'POST':
+        vehicle['marca'] = request.form.get('marca')
+        vehicle['modelo'] = request.form.get('modelo')
+        vehicle['ano'] = request.form.get('ano')
+        vehicle['user_email'] = request.form.get('user_email')
+
+        try:
+            veiculos_container.replace_item(item=vehicle['id'], body=vehicle)
+            flash("Veiculo atualizado com sucesso.", "success")
+            return redirect(url_for('admin_vehicles'))
+        except Exception:
+            flash("Erro ao atualizar o veiculo.", "error")
+            return redirect(url_for('admin_edit_vehicle', matricula=matricula))
+
+    return render_template('admin_edit_vehicle.html', vehicle=vehicle)
+
+@app.route('/admin/vehicles/delete/<matricula>', methods=['POST'])
+@admin_required
+def admin_delete_vehicle(matricula):
+    vehicle = get_vehicle_by_matricula(matricula)
+    if not vehicle:
+        flash("Veiculo nao encontrado.", "error")
+        return redirect(url_for('admin_vehicles'))
+
+    try:
+        veiculos_container.delete_item(item=vehicle['id'], partition_key=vehicle['id'])
+
+        associated_manutencoes = list(manutencoes_container.query_items(
+            query="SELECT * FROM c WHERE c.matricula = @matricula",
+            parameters=[{"name": "@matricula", "value": matricula}],
+            enable_cross_partition_query=True
+        ))
+        for manutencao in associated_manutencoes:
+            manutencoes_container.delete_item(item=manutencao['id'], partition_key=manutencao['id'])
+
+        flash("Veiculo e manutencoes associadas removidos com sucesso.", "success")
+    except Exception:
+        flash("Erro ao remover o veiculo.", "error")
+
+    return redirect(url_for('admin_vehicles'))
+
 @app.route('/garagem')
 def garagem():
     if 'user_email' not in session:
