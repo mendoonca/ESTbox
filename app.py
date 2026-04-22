@@ -197,7 +197,25 @@ def registo():
 def admin_dashboard():
     return render_template('indexAdmin.html')
 
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    users = list(users_container.query_items(
+        query="SELECT c.email, c.role FROM c ORDER BY c.email ASC",
+        enable_cross_partition_query=True
+    ))
+    return render_template('admin_users.html', users=users)
+
 veiculos_container = database.get_container_client("Veiculos")
+
+@app.route('/admin/vehicles')
+@admin_required
+def admin_vehicles():
+    vehicles = list(veiculos_container.query_items(
+        query="SELECT * FROM c ORDER BY c.matricula ASC",
+        enable_cross_partition_query=True
+    ))
+    return render_template('admin_vehicles.html', vehicles=vehicles)
 
 @app.route('/garagem')
 def garagem():
