@@ -221,6 +221,16 @@
                     <a href="/login" class="btn-login">Login</a>
                     <a href="/registo" class="btn-registar">Registar</a>
                 {% endif %}
+
+                {% if notificacoes %}
+                    <div class="flash-wrapper">
+                        {% for n in notificacoes %}
+                            <div class="flash flash-error">
+                                🔔 {{ n.mensagem }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
         </nav>
     </header>

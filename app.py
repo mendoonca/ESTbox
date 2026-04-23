@@ -32,6 +32,7 @@ ADMIN_EMAILS = {
 client = CosmosClient(URL, credential=KEY)
 database = client.get_database_client("ESTboxDB")
 users_container = database.get_container_client("Users") # Para guardar os utilizadores
+notificacoes_container = database.get_container_client("Notificacoes") # Para guardar as notificações de inspeção
 
 # Cliente do Blob Storage (opcional para ambiente local sem storage)
 blob_service_client = None
@@ -412,7 +413,8 @@ def adicionar_veiculo():
         'matricula': matricula,
         'marca': request.form.get('marca'),
         'modelo': request.form.get('modelo'),
-        'ano': request.form.get('ano')
+        'ano': request.form.get('ano'),
+        'data_inspecao': request.form.get('data_inspecao')
     }
     
     try:
@@ -600,6 +602,17 @@ def ver_fatura(manutencao_id):
     content_type = manutencao.get('fatura_content_type') or 'application/octet-stream'
     filename = manutencao.get('fatura_filename') or 'fatura'
     return send_file(BytesIO(downloaded), mimetype=content_type, download_name=filename)
+
+
+@app.context_processor
+def inject_notifications():
+    user_email = session.get('user_email')
+    if user_email:
+        query = "SELECT * FROM c WHERE c.user_email = @email AND c.lida = false"
+        params = [{"name": "@email", "value": user_email}]
+        notificacoes = list(notificacoes_container.query_items(query=query, parameters=params, enable_cross_partition_query=True))
+        return dict(notificacoes=notificacoes)
+    return dict(notificacoes=[])
 
 #   !! Apenas para testar localmente no nosso computador !!
 if __name__ == '__main__':

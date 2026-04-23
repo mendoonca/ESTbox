@@ -30,7 +30,23 @@ resource webApp 'Microsoft.Web/sites@2022-09-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'PYTHON|3.14' // Configura o servidor automaticamente para Python!
+      linuxFxVersion: 'PYTHON|3.14' // Mantem a versao pedida para a Web App.
+    }
+  }
+}
+
+param functionAppName string = 'estbox-func-${uniqueString(resourceGroup().id)}'
+
+resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
+  name: functionAppName
+  location: location
+  kind: 'functionapp,linux'
+  properties: {
+    serverFarmId: appServicePlan.id
+    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: 'PYTHON|3.14'
+      alwaysOn: true
     }
   }
 }
@@ -153,6 +169,20 @@ resource manutencoesContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
   }
 }
 
+resource notificacoesContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
+  parent: database
+  name: 'Notificacoes'
+  properties: {
+    resource: {
+      id: 'Notificacoes'
+      partitionKey: {
+        paths: [ '/user_email' ] // Particionamos pelo email para consultas rápidas
+        kind: 'Hash'
+      }
+    }
+  }
+}
+
 // 10. Definir variáveis de ambiente da app para Cosmos e Blob
 resource webAppAppSettings 'Microsoft.Web/sites/config@2022-09-01' = {
   parent: webApp
@@ -165,7 +195,20 @@ resource webAppAppSettings 'Microsoft.Web/sites/config@2022-09-01' = {
   }
 }
 
+resource functionAppAppSettings 'Microsoft.Web/sites/config@2022-09-01' = {
+  parent: functionApp
+  name: 'appsettings'
+  properties: {
+    COSMOS_URL: cosmosDbAccount.properties.documentEndpoint
+    COSMOS_KEY: cosmosDbAccount.listKeys().primaryMasterKey
+    AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+    FUNCTIONS_EXTENSION_VERSION: '~4'
+    FUNCTIONS_WORKER_RUNTIME: 'python'
+  }
+}
+
 // 11. Mostrar outputs úteis no final
 output siteUrl string = 'https://${webApp.properties.defaultHostName}'
+output functionAppUrl string = 'https://${functionApp.properties.defaultHostName}'
 output cosmosEndpoint string = cosmosDbAccount.properties.documentEndpoint
 output blobContainer string = invoicesContainer.name
