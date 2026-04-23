@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from azure.cosmos import CosmosClient
+from azure.cosmos.exceptions import CosmosResourceNotFoundError
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -610,7 +611,12 @@ def inject_notifications():
     if user_email:
         query = "SELECT * FROM c WHERE c.user_email = @email AND c.lida = false"
         params = [{"name": "@email", "value": user_email}]
-        notificacoes = list(notificacoes_container.query_items(query=query, parameters=params, enable_cross_partition_query=True))
+        try:
+            notificacoes = list(notificacoes_container.query_items(query=query, parameters=params, enable_cross_partition_query=True))
+        except CosmosResourceNotFoundError:
+            notificacoes = []
+        except Exception:
+            notificacoes = []
         return dict(notificacoes=notificacoes)
     return dict(notificacoes=[])
 
