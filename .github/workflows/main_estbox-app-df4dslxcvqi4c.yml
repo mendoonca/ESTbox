@@ -76,9 +76,10 @@ jobs:
           package: .
 
       - name: 'Deploy to Azure Function App'
-        uses: azure/webapps-deploy@v3
+        uses: Azure/functions-action@v1
         id: deploy-to-functionapp
         with:
           app-name: 'azure-function'
           package: .
+          remote-build: true
           
