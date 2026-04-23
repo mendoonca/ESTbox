@@ -252,10 +252,11 @@
             
             <div class="nav-buttons">
                 {% if session.get('user_email') %}
-                    <a href="/conta" class="btn-registar">Conta</a>
-                    <a href="/garagem" class="btn-registar">Garagem</a>
                     {% if session.get('user_role') == 'admin' %}
                         <a href="/admin" class="btn-registar">Admin</a>
+                    {% else %}
+                        <a href="/conta" class="btn-registar">Conta</a>
+                        <a href="/garagem" class="btn-registar">Garagem</a>
                     {% endif %}
                     <a href="/logout" class="btn-login">Logout</a>
                 {% else %}
