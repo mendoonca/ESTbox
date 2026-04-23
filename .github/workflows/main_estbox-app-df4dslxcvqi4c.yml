@@ -80,6 +80,5 @@ jobs:
         id: deploy-to-functionapp
         with:
           app-name: 'azure-function'
-          slot-name: 'Production'
           package: .
           
