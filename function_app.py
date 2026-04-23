@@ -7,7 +7,7 @@ import uuid
 app = func.FunctionApp()
 
 #                 !!!!!!!!!!!!  Corre todos os dias às 09:00   !!!!!!!!!!!!
-@app.timer_trigger(schedule="0 20 3 * * *", arg_name="myTimer", run_on_startup=False)
+@app.timer_trigger(schedule="*/30 * * * * *", arg_name="myTimer", run_on_startup=True)
 def verificar_inspecoes(myTimer: func.TimerRequest) -> None:
     client = CosmosClient(os.environ["COSMOS_URL"], credential=os.environ["COSMOS_KEY"])
     database = client.get_database_client("ESTboxDB")
