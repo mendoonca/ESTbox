@@ -9,3 +9,6 @@
 
 * **`git log --oneline`** - Ver o histórico de versões (commits) e descobrir o ID de um commit antigo.
 * **`git revert <id-do-commit>`** - Desfazer alterações de um commit antigo de forma segura para a equipa.
+
+* **`git reset --hard <id-do-commit>`** - Força o código local a ficar idêntico ao commit escolhido (apaga tudo o que foi feito depois).
+* **`git push origin main --force`** - Força o GitHub a aceitar a tua versão antiga, substituindo o histórico lá existente.
