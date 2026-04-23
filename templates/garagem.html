@@ -237,6 +237,13 @@
             font-size: 1rem;
         }
 
+        .field-hint {
+            display: block;
+            margin: -8px 0 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
         .form-adicionar button {
             background-color: var(--primary-color);
             color: white;
@@ -319,6 +326,7 @@
                         oninput="this.value = this.value.toUpperCase()">
                 <input type="text" name="ano" placeholder="Ano" required>
                 <input type="date" name="data_inspecao" title="Próxima Inspeção" required>
+                <small class="field-hint">Data da próxima inspeção periódica obrigatória</small>
                 <button type="submit">Adicionar Carro</button>
             </form>
         </div>
