@@ -1,5 +1,6 @@
 import azure.functions as func
 from azure.cosmos import CosmosClient
+from azure.cosmos import PartitionKey
 import logging
 import os
 import datetime
@@ -14,7 +15,11 @@ def verificar_inspecoes(myTimer: func.TimerRequest) -> None:
     client = CosmosClient(os.environ["COSMOS_URL"], credential=os.environ["COSMOS_KEY"])
     database = client.get_database_client("ESTboxDB")
     veiculos_container = database.get_container_client("Veiculos")
-    notificacoes_container = database.get_container_client("Notificacoes")
+    notificacoes_container = database.create_container_if_not_exists(
+        id="Notificacoes",
+        partition_key=PartitionKey(path="/user_email")
+    )
+    logging.info("Notificacoes container is ready")
 
     hoje = datetime.date.today()
     prazo_alerta = hoje + datetime.timedelta(days=30)
