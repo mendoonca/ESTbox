@@ -8,8 +8,8 @@ import uuid
 
 app = func.FunctionApp()
 
-#                 !!!!!!!!!!!!  Corre todos os dias às 09:00   !!!!!!!!!!!!
-@app.timer_trigger(schedule="*/30 * * * * *", arg_name="myTimer", run_on_startup=True)
+# Corre todos os dias as 09:00 (UTC).
+@app.timer_trigger(schedule="0 0 9 * * *", arg_name="myTimer", run_on_startup=False)
 def verificar_inspecoes(myTimer: func.TimerRequest) -> None:
     logging.info("verificar_inspecoes started")
     client = CosmosClient(os.environ["COSMOS_URL"], credential=os.environ["COSMOS_KEY"])
