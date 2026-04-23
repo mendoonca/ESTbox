@@ -1,5 +1,6 @@
 import azure.functions as func
 from azure.cosmos import CosmosClient
+import logging
 import os
 import datetime
 import uuid
@@ -9,6 +10,7 @@ app = func.FunctionApp()
 #                 !!!!!!!!!!!!  Corre todos os dias às 09:00   !!!!!!!!!!!!
 @app.timer_trigger(schedule="*/30 * * * * *", arg_name="myTimer", run_on_startup=True)
 def verificar_inspecoes(myTimer: func.TimerRequest) -> None:
+    logging.info("verificar_inspecoes started")
     client = CosmosClient(os.environ["COSMOS_URL"], credential=os.environ["COSMOS_KEY"])
     database = client.get_database_client("ESTboxDB")
     veiculos_container = database.get_container_client("Veiculos")
@@ -25,10 +27,13 @@ def verificar_inspecoes(myTimer: func.TimerRequest) -> None:
     ]
     
     veiculos = veiculos_container.query_items(query=query, parameters=params, enable_cross_partition_query=True)
+    veiculos = list(veiculos)
+    logging.info("verificar_inspecoes found %d vehicles in alert window", len(veiculos))
 
     for v in veiculos:
         data_inspecao = v.get('data_inspecao')
         if not data_inspecao:
+            logging.warning("Skipping vehicle %s without data_inspecao", v.get('matricula', 'unknown'))
             continue
 
         notificacao_id = uuid.uuid5(
@@ -48,3 +53,6 @@ def verificar_inspecoes(myTimer: func.TimerRequest) -> None:
         }
 
         notificacoes_container.upsert_item(body=nova_notificacao)
+        logging.info("Notification upserted for vehicle %s with inspection date %s", v.get('matricula', 'unknown'), data_inspecao)
+
+    logging.info("verificar_inspecoes finished")

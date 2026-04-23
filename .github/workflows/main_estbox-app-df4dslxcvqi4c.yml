@@ -73,4 +73,13 @@ jobs:
         with:
           app-name: 'estbox-app-df4dslxcvqi4c'
           slot-name: 'Production'
+          package: .
+
+      - name: 'Deploy to Azure Function App'
+        uses: azure/webapps-deploy@v3
+        id: deploy-to-functionapp
+        with:
+          app-name: 'azure-function'
+          slot-name: 'Production'
+          package: .
           
