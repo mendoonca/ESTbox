@@ -105,12 +105,16 @@ def vehicle_history_report():
         return jsonify({"error": "revisoes deve ser uma lista"}), 400
 
     pdf_buffer = build_vehicle_history_pdf(matricula, revisoes, user_email)
-    return send_file(
+    response = send_file(
         pdf_buffer,
         mimetype="application/pdf",
         as_attachment=False,
         download_name=f"historico_{matricula}.pdf"
     )
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 if __name__ == "__main__":

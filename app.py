@@ -530,13 +530,17 @@ def exportar_historico_pdf(matricula):
         flash("Servico de relatorios indisponivel. Tenta novamente mais tarde.", "error")
         return redirect(url_for('historico', matricula=matricula))
 
-    filename = f"historico_{matricula}.pdf"
-    return send_file(
+    filename = f"historico_{matricula}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    response = send_file(
         BytesIO(response.content),
         mimetype='application/pdf',
         as_attachment=True,
         download_name=filename
     )
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.route('/adicionar_manutencao', methods=['POST'])
 def adicionar_manutencao():
