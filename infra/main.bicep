@@ -10,6 +10,9 @@ param storageAccountName string = 'estboxsa${uniqueString(resourceGroup().id)}'
 // Nome do container Blob onde ficam as faturas
 param blobContainerName string = 'faturas'
 
+// URL publica do microservico Docker que gera os PDFs de historico
+param reportServiceUrl string = ''
+
 // 1. Criar o Plano de Alojamento (O "Computador" no Azure)
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: 'estbox-plan'
@@ -192,6 +195,8 @@ resource webAppAppSettings 'Microsoft.Web/sites/config@2022-09-01' = {
     COSMOS_KEY: cosmosDbAccount.listKeys().primaryMasterKey
     BLOB_CONNECTION_STRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
     BLOB_CONTAINER_NAME: invoicesContainer.name
+    REPORT_SERVICE_URL: reportServiceUrl
+    REPORT_SERVICE_TIMEOUT: '20'
   }
 }
 

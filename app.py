@@ -5,6 +5,7 @@ from azure.storage.blob import BlobServiceClient, ContentSettings
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
+import requests
 import re
 import os
 import uuid
@@ -21,6 +22,8 @@ KEY = os.environ.get("COSMOS_KEY")
 # --- CONFIGURAÇÕES DO AZURE BLOB STORAGE ---
 BLOB_CONNECTION_STRING = os.environ.get("BLOB_CONNECTION_STRING")
 BLOB_CONTAINER_NAME = os.environ.get("BLOB_CONTAINER_NAME", "faturas")
+REPORT_SERVICE_URL = os.environ.get("REPORT_SERVICE_URL", "http://localhost:8000").rstrip("/")
+REPORT_SERVICE_TIMEOUT = int(os.environ.get("REPORT_SERVICE_TIMEOUT", "20"))
 DEFAULT_ROLE = "utilizador"
 ALLOWED_ROLES = {"admin", "utilizador"}
 ADMIN_EMAILS = {
@@ -465,6 +468,75 @@ def historico(matricula):
     ))
     
     return render_template('historico.html', matricula=matricula, revisoes=lista_revisoes)
+
+
+@app.route('/historico/<matricula>/exportar_pdf')
+def exportar_historico_pdf(matricula):
+    if 'user_email' not in session:
+        flash("Precisas de iniciar sessao para exportar o historico.", "error")
+        return redirect(url_for('login'))
+
+    user_email = session['user_email']
+    vehicle_query = "SELECT * FROM c WHERE c.id = @matricula AND c.user_email = @user_email"
+    vehicle_parameters = [
+        {"name": "@matricula", "value": matricula},
+        {"name": "@user_email", "value": user_email}
+    ]
+    veiculo = list(veiculos_container.query_items(
+        query=vehicle_query,
+        parameters=vehicle_parameters,
+        enable_cross_partition_query=True
+    ))
+
+    if not veiculo:
+        flash("Nao tens permissao para exportar este historico.", "error")
+        return redirect(url_for('garagem'))
+
+    query = "SELECT * FROM c WHERE c.matricula = @matricula AND c.user_email = @user_email ORDER BY c.data DESC"
+    parameters = [
+        {"name": "@matricula", "value": matricula},
+        {"name": "@user_email", "value": user_email}
+    ]
+    lista_revisoes = list(manutencoes_container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+
+    payload = {
+        "matricula": matricula,
+        "user_email": user_email,
+        "revisoes": [
+            {
+                "data": r.get("data"),
+                "descricao": r.get("descricao"),
+                "km": r.get("km"),
+                "custo": r.get("custo")
+            }
+            for r in lista_revisoes
+        ]
+    }
+
+    try:
+        response = requests.post(
+            f"{REPORT_SERVICE_URL}/reports/vehicle-history",
+            json=payload,
+            timeout=REPORT_SERVICE_TIMEOUT
+        )
+        if response.status_code != 200:
+            flash("Nao foi possivel gerar o PDF neste momento.", "error")
+            return redirect(url_for('historico', matricula=matricula))
+    except requests.RequestException:
+        flash("Servico de relatorios indisponivel. Tenta novamente mais tarde.", "error")
+        return redirect(url_for('historico', matricula=matricula))
+
+    filename = f"historico_{matricula}.pdf"
+    return send_file(
+        BytesIO(response.content),
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
+    )
 
 @app.route('/adicionar_manutencao', methods=['POST'])
 def adicionar_manutencao():

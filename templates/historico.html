@@ -216,6 +216,26 @@
             color: var(--primary-color);
         }
 
+        .historico-actions {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .btn-export {
+            background-color: var(--accent-color);
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-export:hover {
+            background-color: #e68a00;
+        }
+
         .form-adicionar {
             background: white;
             padding: 30px;
@@ -328,6 +348,10 @@
 
     <section class="historico-content">
         <h2>Histórico do Veículo: {{ matricula }}</h2>
+
+        <div class="historico-actions">
+            <a class="btn-export" href="{{ url_for('exportar_historico_pdf', matricula=matricula) }}">Exportar Histórico em PDF</a>
+        </div>
 
         <div class="form-adicionar">
             <form action="{{ url_for('adicionar_manutencao') }}" method="POST" enctype="multipart/form-data">
