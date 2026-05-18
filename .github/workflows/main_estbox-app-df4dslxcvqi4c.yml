@@ -3,8 +3,6 @@
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
 name: Provision and deploy ESTbox
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 on:
   push:
@@ -20,6 +18,7 @@ jobs:
       contents: read
 
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
       AZURE_LOCATION: westeurope
       AZURE_RESOURCE_GROUP: estbox-rg
       AZURE_CONTAINERAPPS_ENV: estbox-reports-env
