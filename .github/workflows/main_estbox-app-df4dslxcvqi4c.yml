@@ -2,38 +2,54 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Provision and deploy ESTbox
+name: Build and deploy Python app to Azure Web App - estbox-app-df4dslxcvqi4c
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: read
-
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-      AZURE_LOCATION: westeurope
-      AZURE_RESOURCE_GROUP: estbox-rg
-      AZURE_CONTAINERAPPS_ENV: estbox-reports-env
+      contents: read #This is required for actions/checkout
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.14'
 
-      - name: Validate dependencies
-        run: pip install -r requirements.txt
+      - name: Create and Start virtual environment and Install dependencies
+        run: |
+          python -m venv antenv
+          source antenv/bin/activate
+          pip install -r requirements.txt
+                
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: |
+            .
+            !antenv/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -42,148 +58,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Debug: print az and node versions
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            az --version || true
-            node --version || true
-
-      - name: Register required Azure providers
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            az provider register --namespace Microsoft.Web
-            az provider register --namespace Microsoft.Storage
-            az provider register --namespace Microsoft.DocumentDB
-            az provider register --namespace Microsoft.App
-            az provider register --namespace Microsoft.OperationalInsights
-            az provider register --namespace Microsoft.ContainerRegistry
-
-      - name: Compute deterministic names
-        id: names
-        shell: bash
-        run: |
-          set -euo pipefail
-          suffix=$(echo -n "${{ github.repository }}-${{ secrets.AZURE_SUBSCRIPTION_ID }}" | sha1sum | cut -c1-8)
-          echo "suffix=$suffix" >> "$GITHUB_OUTPUT"
-          echo "webAppName=estbox-app-$suffix" >> "$GITHUB_OUTPUT"
-          echo "functionAppName=estbox-func-$suffix" >> "$GITHUB_OUTPUT"
-          echo "storageAccountName=estboxsa$suffix" >> "$GITHUB_OUTPUT"
-          echo "cosmosDbName=estbox-db-$suffix" >> "$GITHUB_OUTPUT"
-          echo "acrName=estboxacr$suffix" >> "$GITHUB_OUTPUT"
-          echo "reportContainerAppName=estbox-reports-$suffix" >> "$GITHUB_OUTPUT"
-
-      - name: Ensure resource group exists
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            set -x
-            az group create \
-              --name ${{ env.AZURE_RESOURCE_GROUP }} \
-              --location ${{ env.AZURE_LOCATION }}
-
-      - name: Ensure Azure Container Registry exists
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            set -x
-            if az acr show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ steps.names.outputs.acrName }} > /dev/null 2>&1; then
-              echo "ACR already exists"
-            else
-              az acr create \
-                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-                --name ${{ steps.names.outputs.acrName }} \
-                --sku Basic \
-                --admin-enabled true
-            fi
-
-      - name: Build and push report service Docker image
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            az acr build \
-              --registry ${{ steps.names.outputs.acrName }} \
-              --image estbox-report-service:${{ github.sha }} \
-              --file Dockerfile.report-service \
-              .
-
-      - name: Install containerapp CLI extension
-        uses: azure/cli@v2
-        with:
-          inlineScript: az extension add --name containerapp --upgrade --yes
-
-      - name: Ensure Container Apps environment exists
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            set -x
-            if az containerapp env show --name ${{ env.AZURE_CONTAINERAPPS_ENV }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} > /dev/null 2>&1; then
-              echo "Container Apps environment already exists"
-            else
-              az containerapp env create \
-                --name ${{ env.AZURE_CONTAINERAPPS_ENV }} \
-                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-                --location ${{ env.AZURE_LOCATION }}
-            fi
-
-      - name: Deploy report service container app
-        id: report_service
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            set -euo pipefail
-            ACR_SERVER="${{ steps.names.outputs.acrName }}.azurecr.io"
-            ACR_USERNAME=$(az acr credential show --name ${{ steps.names.outputs.acrName }} --query username -o tsv)
-            ACR_PASSWORD=$(az acr credential show --name ${{ steps.names.outputs.acrName }} --query passwords[0].value -o tsv)
-
-            if az containerapp show --name ${{ steps.names.outputs.reportContainerAppName }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} > /dev/null 2>&1; then
-              az containerapp update \
-                --name ${{ steps.names.outputs.reportContainerAppName }} \
-                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-                --image "$ACR_SERVER/estbox-report-service:${{ github.sha }}" \
-                --set-env-vars PORT=8000
-            else
-              az containerapp create \
-                --name ${{ steps.names.outputs.reportContainerAppName }} \
-                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-                --environment ${{ env.AZURE_CONTAINERAPPS_ENV }} \
-                --image "$ACR_SERVER/estbox-report-service:${{ github.sha }}" \
-                --target-port 8000 \
-                --ingress external \
-                --registry-server "$ACR_SERVER" \
-                --registry-username "$ACR_USERNAME" \
-                --registry-password "$ACR_PASSWORD" \
-                --env-vars PORT=8000
-            fi
-
-            report_fqdn=$(az containerapp show \
-              --name ${{ steps.names.outputs.reportContainerAppName }} \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --query properties.configuration.ingress.fqdn -o tsv)
-
-            echo "reportUrl=https://$report_fqdn" >> "$GITHUB_OUTPUT"
-
-      - name: Deploy infrastructure with Bicep
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            az deployment group create \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --template-file infra/main.bicep \
-              --parameters \
-                location=${{ env.AZURE_LOCATION }} \
-                appName=${{ steps.names.outputs.webAppName }} \
-                functionAppName=${{ steps.names.outputs.functionAppName }} \
-                storageAccountName=${{ steps.names.outputs.storageAccountName }} \
-                cosmosDbName=${{ steps.names.outputs.cosmosDbName }} \
-                reportServiceUrl=${{ steps.report_service.outputs.reportUrl }}
-
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: ${{ steps.names.outputs.webAppName }}
+          app-name: 'estbox-app-df4dslxcvqi4c'
           slot-name: 'Production'
           package: .
 
@@ -191,7 +70,7 @@ jobs:
         uses: Azure/functions-action@v1
         id: deploy-to-functionapp
         with:
-          app-name: ${{ steps.names.outputs.functionAppName }}
+          app-name: 'azure-function'
           package: .
           remote-build: true
           
