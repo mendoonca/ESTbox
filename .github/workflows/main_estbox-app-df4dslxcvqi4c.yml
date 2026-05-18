@@ -3,6 +3,8 @@
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
 name: Provision and deploy ESTbox
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 on:
   push:
@@ -41,6 +43,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Debug: print az and node versions
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az --version || true
+            node --version || true
+
       - name: Register required Azure providers
         uses: azure/cli@v2
         with:
@@ -70,6 +79,7 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            set -x
             az group create \
               --name ${{ env.AZURE_RESOURCE_GROUP }} \
               --location ${{ env.AZURE_LOCATION }}
@@ -78,6 +88,7 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            set -x
             if az acr show --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ steps.names.outputs.acrName }} > /dev/null 2>&1; then
               echo "ACR already exists"
             else
@@ -107,6 +118,7 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            set -x
             if az containerapp env show --name ${{ env.AZURE_CONTAINERAPPS_ENV }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} > /dev/null 2>&1; then
               echo "Container Apps environment already exists"
             else
