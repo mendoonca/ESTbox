@@ -649,7 +649,11 @@ def exportar_historico_pdf(matricula):
             timeout=REPORT_SERVICE_TIMEOUT
         )
         if response.status_code != 200:
-            flash("Nao foi possivel gerar o PDF neste momento.", "error")
+            error_detail = (response.text or "").strip()
+            if error_detail:
+                flash(f"Nao foi possivel gerar o PDF. O servico respondeu {response.status_code}: {error_detail}", "error")
+            else:
+                flash(f"Nao foi possivel gerar o PDF. O servico respondeu {response.status_code}.", "error")
             return redirect(url_for('historico', matricula=matricula))
     except requests.RequestException:
         flash("Servico de relatorios indisponivel. Tenta novamente mais tarde.", "error")
