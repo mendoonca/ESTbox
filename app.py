@@ -655,8 +655,11 @@ def exportar_historico_pdf(matricula):
             else:
                 flash(f"Nao foi possivel gerar o PDF. O servico respondeu {response.status_code}.", "error")
             return redirect(url_for('historico', matricula=matricula))
-    except requests.RequestException:
-        flash("Servico de relatorios indisponivel. Tenta novamente mais tarde.", "error")
+    except requests.Timeout as exc:
+        flash(f"Timeout ao contactar o servico de relatorios: {exc}", "error")
+        return redirect(url_for('historico', matricula=matricula))
+    except requests.RequestException as exc:
+        flash(f"Servico de relatorios indisponivel. {type(exc).__name__}: {exc}", "error")
         return redirect(url_for('historico', matricula=matricula))
 
     filename = f"historico_{matricula}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
