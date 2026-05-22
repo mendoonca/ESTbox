@@ -10,6 +10,9 @@ param storageAccountName string = 'estboxsa${uniqueString(resourceGroup().id)}'
 // Nome do container Blob onde ficam as faturas
 param blobContainerName string = 'faturas'
 
+// Nome do container Blob onde ficam os certificados QR
+param blobCertificadosContainerName string = 'certificados'
+
 // URL publica do microservico Docker que gera os PDFs de historico
 param reportServiceUrl string = ''
 
@@ -110,6 +113,14 @@ resource invoicesContainer 'Microsoft.Storage/storageAccounts/blobServices/conta
   }
 }
 
+resource certificadosContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: blobCertificadosContainerName
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
 // 5. Criar a Base de Dados (Onde tudo fica guardado)
 resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
   parent: cosmosDbAccount
@@ -195,6 +206,7 @@ resource webAppAppSettings 'Microsoft.Web/sites/config@2022-09-01' = {
     COSMOS_KEY: cosmosDbAccount.listKeys().primaryMasterKey
     BLOB_CONNECTION_STRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
     BLOB_CONTAINER_NAME: invoicesContainer.name
+    BLOB_CERTIFICADOS_CONTAINER: certificadosContainer.name
     REPORT_SERVICE_URL: reportServiceUrl
     REPORT_SERVICE_TIMEOUT: '20'
   }

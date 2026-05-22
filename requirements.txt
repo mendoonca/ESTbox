@@ -5,3 +5,4 @@ azure-functions
 python-dotenv
 werkzeug
 requests
+qrcode[pil]

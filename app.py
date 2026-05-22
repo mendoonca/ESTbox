@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
 from datetime import datetime
+import qrcode
 import requests
 import re
 import os
@@ -23,6 +24,7 @@ KEY = os.environ.get("COSMOS_KEY")
 # --- CONFIGURAÇÕES DO AZURE BLOB STORAGE ---
 BLOB_CONNECTION_STRING = os.environ.get("BLOB_CONNECTION_STRING")
 BLOB_CONTAINER_NAME = os.environ.get("BLOB_CONTAINER_NAME", "faturas")
+BLOB_CERTIFICADOS_CONTAINER = os.environ.get("BLOB_CERTIFICADOS_CONTAINER", "certificados")
 REPORT_SERVICE_URL = os.environ.get("REPORT_SERVICE_URL", "http://localhost:8000").rstrip("/")
 REPORT_SERVICE_TIMEOUT = int(os.environ.get("REPORT_SERVICE_TIMEOUT", "20"))
 DEFAULT_ROLE = "utilizador"
@@ -42,15 +44,20 @@ notificacoes_container = database.get_container_client("Notificacoes") # Para gu
 # Cliente do Blob Storage (opcional para ambiente local sem storage)
 blob_service_client = None
 blob_container_client = None
+blob_certificados_container_client = None
 if BLOB_CONNECTION_STRING:
     try:
         blob_service_client = BlobServiceClient.from_connection_string(BLOB_CONNECTION_STRING)
         blob_container_client = blob_service_client.get_container_client(BLOB_CONTAINER_NAME)
         if not blob_container_client.exists():
             blob_container_client.create_container()
+        blob_certificados_container_client = blob_service_client.get_container_client(BLOB_CERTIFICADOS_CONTAINER)
+        if not blob_certificados_container_client.exists():
+            blob_certificados_container_client.create_container()
     except Exception:
         blob_service_client = None
         blob_container_client = None
+        blob_certificados_container_client = None
 
 
 def normalize_role(role):
@@ -77,6 +84,20 @@ def get_user_by_email(email):
     if users:
         return users[0]
     return None
+
+
+def get_owned_vehicle(matricula, user_email):
+    query = "SELECT * FROM c WHERE c.id = @matricula AND c.user_email = @user_email"
+    parameters = [
+        {"name": "@matricula", "value": matricula},
+        {"name": "@user_email", "value": user_email}
+    ]
+    vehicles = list(veiculos_container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+    return vehicles[0] if vehicles else None
 
 
 def admin_required(route_function):
@@ -433,6 +454,95 @@ def adicionar_veiculo():
 
 manutencoes_container = database.get_container_client("Manutencoes")
 
+
+@app.route('/gerar_passaporte/<matricula>', methods=['POST'])
+def gerar_passaporte(matricula):
+    if 'user_email' not in session:
+        flash("Precisas de iniciar sessao para gerar o passaporte digital.", "error")
+        return redirect(url_for('login'))
+
+    if not blob_certificados_container_client:
+        flash("Blob Storage nao configurado para certificados QR.", "error")
+        return redirect(url_for('historico', matricula=matricula))
+
+    user_email = session['user_email']
+    matricula_normalizada = (matricula or '').strip().upper()
+    veiculo = get_owned_vehicle(matricula_normalizada, user_email)
+
+    if not veiculo:
+        flash("Nao tens permissao para gerar o passaporte deste veiculo.", "error")
+        return redirect(url_for('garagem'))
+
+    validation_url = f"{request.host_url.rstrip('/')}/validar_veiculo/{matricula_normalizada}"
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(validation_url)
+    qr.make(fit=True)
+    qr_image = qr.make_image(fill_color='black', back_color='white')
+
+    qr_buffer = BytesIO()
+    qr_image.save(qr_buffer, format='PNG')
+    qr_buffer.seek(0)
+
+    qr_code_blob_name = f"certificados/{secure_filename(matricula_normalizada)}.png"
+
+    try:
+        blob_client = blob_certificados_container_client.get_blob_client(qr_code_blob_name)
+        blob_client.upload_blob(
+            qr_buffer.getvalue(),
+            overwrite=True,
+            content_settings=ContentSettings(content_type='image/png')
+        )
+
+        veiculo_atualizado = {
+            key: value for key, value in veiculo.items() if not key.startswith('_')
+        }
+        veiculo_atualizado['qr_code_blob_name'] = qr_code_blob_name
+        veiculos_container.upsert_item(veiculo_atualizado)
+    except Exception:
+        flash("Nao foi possivel guardar o QR Code no Blob Storage.", "error")
+        return redirect(url_for('historico', matricula=matricula_normalizada))
+
+    flash("Passaporte digital gerado com sucesso.", "success")
+    return redirect(url_for('historico', matricula=matricula_normalizada))
+
+
+@app.route('/qr_code/<matricula>')
+def qr_code(matricula):
+    if 'user_email' not in session:
+        flash("Precisas de iniciar sessao para ver o QR Code.", "error")
+        return redirect(url_for('login'))
+
+    if not blob_certificados_container_client:
+        flash("Blob Storage nao configurado para certificados QR.", "error")
+        return redirect(url_for('historico', matricula=matricula))
+
+    user_email = session['user_email']
+    matricula_normalizada = (matricula or '').strip().upper()
+    veiculo = get_owned_vehicle(matricula_normalizada, user_email)
+
+    if not veiculo or not veiculo.get('qr_code_blob_name'):
+        flash("Ainda nao existe um QR Code para este veiculo.", "error")
+        return redirect(url_for('historico', matricula=matricula_normalizada))
+
+    try:
+        blob_client = blob_certificados_container_client.get_blob_client(veiculo['qr_code_blob_name'])
+        blob_data = blob_client.download_blob().readall()
+    except Exception:
+        flash("Nao foi possivel carregar o QR Code.", "error")
+        return redirect(url_for('historico', matricula=matricula_normalizada))
+
+    return send_file(
+        BytesIO(blob_data),
+        mimetype='image/png',
+        as_attachment=False,
+        download_name=f"qr_code_{matricula_normalizada}.png"
+    )
+
 @app.route('/historico/<matricula>')
 def historico(matricula):
     if 'user_email' not in session:
@@ -440,16 +550,7 @@ def historico(matricula):
         return redirect(url_for('login'))
 
     user_email = session['user_email']
-    vehicle_query = "SELECT * FROM c WHERE c.id = @matricula AND c.user_email = @user_email"
-    vehicle_parameters = [
-        {"name": "@matricula", "value": matricula},
-        {"name": "@user_email", "value": user_email}
-    ]
-    veiculo = list(veiculos_container.query_items(
-        query=vehicle_query,
-        parameters=vehicle_parameters,
-        enable_cross_partition_query=True
-    ))
+    veiculo = get_owned_vehicle((matricula or '').strip().upper(), user_email)
 
     if not veiculo:
         flash("Nao tens permissao para ver este historico.", "error")
@@ -468,7 +569,7 @@ def historico(matricula):
         enable_cross_partition_query=True
     ))
     
-    return render_template('historico.html', matricula=matricula, revisoes=lista_revisoes)
+    return render_template('historico.html', matricula=matricula.upper(), revisoes=lista_revisoes, veiculo=veiculo)
 
 
 @app.route('/historico/<matricula>/exportar_pdf')
