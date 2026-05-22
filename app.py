@@ -513,34 +513,57 @@ def gerar_passaporte(matricula):
 
 @app.route('/qr_code/<matricula>')
 def qr_code(matricula):
-    if 'user_email' not in session:
-        flash("Precisas de iniciar sessao para ver o QR Code.", "error")
-        return redirect(url_for('login'))
-
     if not blob_certificados_container_client:
         flash("Blob Storage nao configurado para certificados QR.", "error")
-        return redirect(url_for('historico', matricula=matricula))
-
-    user_email = session['user_email']
     matricula_normalizada = (matricula or '').strip().upper()
-    veiculo = get_owned_vehicle(matricula_normalizada, user_email)
+    veiculo = get_vehicle_by_matricula(matricula_normalizada)
 
     if not veiculo or not veiculo.get('qr_code_blob_name'):
         flash("Ainda nao existe um QR Code para este veiculo.", "error")
-        return redirect(url_for('historico', matricula=matricula_normalizada))
+        return redirect(url_for('home'))
 
     try:
         blob_client = blob_certificados_container_client.get_blob_client(veiculo['qr_code_blob_name'])
         blob_data = blob_client.download_blob().readall()
     except Exception:
         flash("Nao foi possivel carregar o QR Code.", "error")
-        return redirect(url_for('historico', matricula=matricula_normalizada))
+        return redirect(url_for('home'))
 
     return send_file(
         BytesIO(blob_data),
         mimetype='image/png',
         as_attachment=False,
         download_name=f"qr_code_{matricula_normalizada}.png"
+    )
+
+
+@app.route('/validar_veiculo/<matricula>')
+def validar_veiculo(matricula):
+    matricula_normalizada = (matricula or '').strip().upper()
+    veiculo = get_vehicle_by_matricula(matricula_normalizada)
+
+    if not veiculo:
+        return render_template(
+            'validar_veiculo.html',
+            matricula=matricula_normalizada,
+            veiculo=None,
+            qr_valido=False,
+            mensagem="Nao foi encontrado nenhum veiculo com esta matricula."
+        ), 404
+
+    qr_valido = bool(veiculo.get('qr_code_blob_name'))
+    mensagem = (
+        "QR Code validado com sucesso."
+        if qr_valido
+        else "Este veiculo existe, mas ainda nao tem um QR Code associado."
+    )
+
+    return render_template(
+        'validar_veiculo.html',
+        matricula=matricula_normalizada,
+        veiculo=veiculo,
+        qr_valido=qr_valido,
+        mensagem=mensagem
     )
 
 @app.route('/historico/<matricula>')

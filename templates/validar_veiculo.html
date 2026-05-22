@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESTbox - Validação do Veículo</title>
+    <style>
+        :root {
+            --primary-color: #0056b3;
+            --secondary-color: #f8f9fa;
+            --text-color: #1f2937;
+            --accent-color: #ff9800;
+            --success-color: #1f7a3d;
+            --success-bg: #e8f7ee;
+            --danger-color: #a02929;
+            --danger-bg: #fdecec;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(0, 86, 179, 0.12), transparent 32%),
+                radial-gradient(circle at right top, rgba(255, 152, 0, 0.12), transparent 28%),
+                var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        header {
+            padding: 28px 5% 0;
+        }
+
+        .brand {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: var(--accent-color);
+        }
+
+        .hero {
+            max-width: 1100px;
+            margin: 30px auto 0;
+            padding: 0 5% 60px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+
+        .panel-top {
+            padding: 36px;
+            background: linear-gradient(135deg, rgba(0, 86, 179, 0.12), rgba(255, 152, 0, 0.08));
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        }
+
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            line-height: 1.1;
+            margin-bottom: 14px;
+        }
+
+        .subtitle {
+            max-width: 760px;
+            font-size: 1.05rem;
+            color: #4b5563;
+        }
+
+        .status-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 24px;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.92rem;
+        }
+
+        .badge.success {
+            background: var(--success-bg);
+            color: var(--success-color);
+        }
+
+        .badge.error {
+            background: var(--danger-bg);
+            color: var(--danger-color);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 24px;
+            padding: 36px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 18px;
+            color: var(--primary-color);
+        }
+
+        .details {
+            display: grid;
+            gap: 14px;
+        }
+
+        .detail {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .detail:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .label {
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .value {
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .qr-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            text-align: center;
+        }
+
+        .qr-box img {
+            width: 100%;
+            max-width: 280px;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            padding: 14px;
+        }
+
+        .empty-note {
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .footer-note {
+            padding: 0 36px 36px;
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .panel-top,
+            .content,
+            .footer-note {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .detail {
+                flex-direction: column;
+            }
+
+            .value {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <a href="{{ url_for('home') }}" class="logo">EST<span>box</span></a>
+        </div>
+    </header>
+
+    <main class="hero">
+        <section class="panel">
+            <div class="panel-top">
+                <div class="eyebrow">Passaporte Digital</div>
+                <h1>Validação do veículo</h1>
+                <p class="subtitle">Esta página confirma se o QR Code pertence a um veículo registado na ESTbox e mostra os dados públicos associados à matrícula.</p>
+                <div class="status-row">
+                    {% if qr_valido %}
+                        <span class="badge success">QR Code válido</span>
+                    {% else %}
+                        <span class="badge error">QR Code inválido ou inexistente</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="card">
+                    <h2>Estado da validação</h2>
+                    <div class="details">
+                        <div class="detail">
+                            <span class="label">Matrícula</span>
+                            <span class="value">{{ matricula }}</span>
+                        </div>
+                        <div class="detail">
+                            <span class="label">Mensagem</span>
+                            <span class="value">{{ mensagem }}</span>
+                        </div>
+                        {% if veiculo %}
+                        <div class="detail">
+                            <span class="label">Marca</span>
+                            <span class="value">{{ veiculo.marca }}</span>
+                        </div>
+                        <div class="detail">
+                            <span class="label">Modelo</span>
+                            <span class="value">{{ veiculo.modelo }}</span>
+                        </div>
+                        <div class="detail">
+                            <span class="label">Ano</span>
+                            <span class="value">{{ veiculo.ano }}</span>
+                        </div>
+                        <div class="detail">
+                            <span class="label">Última inspeção</span>
+                            <span class="value">{{ veiculo.data_inspecao or 'Sem data registada' }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card qr-box">
+                    <h2>QR Code</h2>
+                    {% if qr_valido %}
+                        <img src="{{ url_for('qr_code', matricula=matricula) }}" alt="QR Code do veículo {{ matricula }}">
+                    {% else %}
+                        <p class="empty-note">Não há QR Code ativo para apresentar nesta validação.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="footer-note">
+                {% if qr_valido %}
+                    O veículo foi encontrado e o passaporte digital está ativo.
+                {% else %}
+                    Esta matrícula não está pronta para validação com passaporte digital.
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</body>
+</html>
