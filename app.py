@@ -5,7 +5,7 @@ from azure.storage.blob import BlobServiceClient, ContentSettings
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import qrcode
 import requests
@@ -321,6 +321,43 @@ def delete_inspection_notifications(matricula, user_email):
                 matricula
             )
 
+
+def upsert_inspection_notification(vehicle, user_email):
+    if not user_email:
+        return
+
+    data_inspecao = vehicle.get('data_inspecao')
+    if not data_inspecao:
+        return
+
+    try:
+        data_inspecao_date = datetime.strptime(data_inspecao, "%Y-%m-%d").date()
+    except ValueError:
+        return
+
+    hoje = datetime.now().date()
+    limite = hoje + timedelta(days=30)
+    if not (hoje <= data_inspecao_date <= limite):
+        return
+
+    notificacao_id = uuid.uuid5(
+        uuid.NAMESPACE_URL,
+        f"{user_email}|{vehicle.get('matricula', '')}|{data_inspecao}"
+    ).hex
+
+    nova_notificacao = {
+        'id': notificacao_id,
+        'user_email': user_email,
+        'matricula': vehicle.get('matricula'),
+        'data_inspecao': data_inspecao,
+        'tipo': 'inspecao',
+        'mensagem': f"Alerta: O seu veículo {vehicle.get('marca')} ({vehicle.get('matricula')}) tem a próxima inspeção marcada para {data_inspecao}.",
+        'lida': False,
+        'data_criacao': hoje.isoformat()
+    }
+
+    notificacoes_container.upsert_item(body=nova_notificacao)
+
 @app.route('/admin/users/edit/<email>', methods=['GET', 'POST'])
 @admin_required
 def admin_edit_user(email):
@@ -414,6 +451,8 @@ def admin_edit_vehicle(matricula):
 
             if vehicle.get('user_email') and vehicle.get('user_email') != old_user_email:
                 delete_inspection_notifications(matricula, vehicle.get('user_email'))
+
+            upsert_inspection_notification(vehicle, vehicle.get('user_email'))
 
             flash("Veiculo atualizado com sucesso.", "success")
             return redirect(url_for('admin_vehicles'))
