@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
 from datetime import datetime
+import logging
 import qrcode
 import requests
 import re
@@ -291,6 +292,35 @@ def get_vehicle_by_matricula(matricula):
     ))
     return vehicles[0] if vehicles else None
 
+
+def delete_inspection_notifications(matricula, user_email):
+    if not user_email:
+        return
+
+    query = "SELECT * FROM c WHERE c.user_email = @user_email AND c.matricula = @matricula AND c.tipo = 'inspecao'"
+    parameters = [
+        {"name": "@user_email", "value": user_email},
+        {"name": "@matricula", "value": matricula}
+    ]
+
+    notifications = list(notificacoes_container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+
+    for notification in notifications:
+        try:
+            notificacoes_container.delete_item(
+                item=notification['id'],
+                partition_key=notification['user_email']
+            )
+        except Exception:
+            logging.exception(
+                "Erro ao remover notificacao de inspeccao antiga para %s",
+                matricula
+            )
+
 @app.route('/admin/users/edit/<email>', methods=['GET', 'POST'])
 @admin_required
 def admin_edit_user(email):
@@ -364,13 +394,27 @@ def admin_edit_vehicle(matricula):
         return redirect(url_for('admin_vehicles'))
 
     if request.method == 'POST':
+        old_user_email = vehicle.get('user_email')
+        old_data_inspecao = vehicle.get('data_inspecao')
+
         vehicle['marca'] = request.form.get('marca')
         vehicle['modelo'] = request.form.get('modelo')
         vehicle['ano'] = request.form.get('ano')
         vehicle['user_email'] = request.form.get('user_email')
+        vehicle['data_inspecao'] = request.form.get('data_inspecao')
 
         try:
             veiculos_container.replace_item(item=vehicle['id'], body=vehicle)
+
+            if old_user_email and (
+                old_user_email != vehicle.get('user_email') or
+                old_data_inspecao != vehicle.get('data_inspecao')
+            ):
+                delete_inspection_notifications(matricula, old_user_email)
+
+            if vehicle.get('user_email') and vehicle.get('user_email') != old_user_email:
+                delete_inspection_notifications(matricula, vehicle.get('user_email'))
+
             flash("Veiculo atualizado com sucesso.", "success")
             return redirect(url_for('admin_vehicles'))
         except Exception:

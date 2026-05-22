@@ -204,6 +204,10 @@
                     <input id="ano" name="ano" type="text" value="{{ vehicle.ano }}" required>
                 </div>
                 <div class="form-group">
+                    <label for="data_inspecao">Data de Inspeção</label>
+                    <input id="data_inspecao" name="data_inspecao" type="date" value="{{ vehicle.data_inspecao or '' }}">
+                </div>
+                <div class="form-group">
                     <label for="user_email">Proprietário (Email)</label>
                     <input id="user_email" name="user_email" type="email" value="{{ vehicle.user_email }}" required>
                 </div>
